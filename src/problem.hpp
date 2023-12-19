@@ -49,7 +49,11 @@ class Problem {
     real_t λ_2;         ///< ℓ₂-Regularization factor
     tensor3 A;          ///< Feature matrix (m×n×q)
     tensor3 b;          ///< Observations (m×p×q)
+    tensor3 AᵀA;        ///< Cached Hessian AᵀA (n×n×q)
+    tensor3 Aᵀb;        ///< Cached product Aᵀb (n×p×q)
     mutable tensor3 Ax; ///< Work vector (m×p×q)
+    mutable tensor3 w;  ///< Work vector (n×p×q)
+    real_t bᵀb;
 #if ACL_WITH_CUDA
     cublasUniqueHandle handle;
     cudaUniquePtr<real_t> ones;

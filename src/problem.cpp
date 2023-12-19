@@ -20,22 +20,39 @@ namespace {
 real_t normSquared(const crtensor2 &t) {
     return cmvec{t.data(), t.size()}.squaredNorm();
 }
+real_t dot(const crtensor2 &t, const crtensor2 &s) {
+    return cmvec{t.data(), t.size()}.dot(cmvec{s.data(), s.size()});
+}
 } // namespace
 
 real_t Problem::eval_f(const real_t *x_) const {
     cmtensor3 x{x_, n, p, q};
-    const std::array mat_mat{Eigen::IndexPair<index_t>{1, 0}};
     real_t sq_norm   = 0;
     real_t sq_norm_x = 0;
+    const std::array mat_mat{Eigen::IndexPair<index_t>{1, 0}};
+    if (AᵀA.size() > 0 && Aᵀb.size() > 0 && w.size() > 0) {
+        sq_norm += bᵀb;
 #pragma omp parallel for reduction(+ : sq_norm) reduction(+ : sq_norm_x)
-    for (index_t i = 0; i < q; ++i) {
-        auto Ai  = A.chip(i, 2);
-        auto Axi = Ax.chip(i, 2);
-        auto xi  = x.chip(i, 2);
-        auto bi  = b.chip(i, 2);
-        Axi      = Ai.contract(xi, mat_mat) - bi;
-        sq_norm += normSquared(Axi);
-        sq_norm_x += normSquared(xi);
+        for (index_t i = 0; i < q; ++i) {
+            auto AᵀAi = AᵀA.chip(i, 2);
+            auto Aᵀbi = Aᵀb.chip(i, 2);
+            auto xi   = x.chip(i, 2);
+            auto wi   = w.chip(i, 2);
+            wi        = AᵀAi.contract(xi, mat_mat) - 2 * Aᵀbi;
+            sq_norm += dot(wi, xi);
+            sq_norm_x += normSquared(xi);
+        }
+    } else {
+#pragma omp parallel for reduction(+ : sq_norm) reduction(+ : sq_norm_x)
+        for (index_t i = 0; i < q; ++i) {
+            auto Ai  = A.chip(i, 2);
+            auto Axi = Ax.chip(i, 2);
+            auto xi  = x.chip(i, 2);
+            auto bi  = b.chip(i, 2);
+            Axi      = Ai.contract(xi, mat_mat) - bi;
+            sq_norm += normSquared(Axi);
+            sq_norm_x += normSquared(xi);
+        }
     }
     return 0.5 * loss_scale * sq_norm + 0.5 * λ_2 * sq_norm_x;
 }
@@ -45,15 +62,27 @@ void Problem::eval_grad_f(const real_t *x_, real_t *g_) const {
     mtensor3 g{g_, n, p, q};
     const std::array mat_mat{Eigen::IndexPair<index_t>{1, 0}};
     const std::array mat_tp_mat{Eigen::IndexPair<index_t>{0, 0}};
+    if (AᵀA.size() > 0 && Aᵀb.size() > 0 && w.size() > 0) {
 #pragma omp parallel for
-    for (index_t i = 0; i < q; ++i) {
-        auto Ai  = A.chip(i, 2);
-        auto Axi = Ax.chip(i, 2);
-        auto xi  = x.chip(i, 2);
-        auto bi  = b.chip(i, 2);
-        auto gi  = g.chip(i, 2);
-        Axi      = Ai.contract(xi, mat_mat) - bi;
-        gi       = loss_scale * Ai.contract(Axi, mat_tp_mat) + λ_2 * xi;
+        for (index_t i = 0; i < q; ++i) {
+            auto AᵀAi = AᵀA.chip(i, 2);
+            auto Aᵀbi = Aᵀb.chip(i, 2);
+            auto xi   = x.chip(i, 2);
+            auto gi   = g.chip(i, 2);
+            gi = loss_scale * AᵀAi.contract(xi, mat_mat) - loss_scale * Aᵀbi +
+                 λ_2 * xi;
+        }
+    } else {
+#pragma omp parallel for
+        for (index_t i = 0; i < q; ++i) {
+            auto Ai  = A.chip(i, 2);
+            auto Axi = Ax.chip(i, 2);
+            auto xi  = x.chip(i, 2);
+            auto bi  = b.chip(i, 2);
+            auto gi  = g.chip(i, 2);
+            Axi      = Ai.contract(xi, mat_mat) - bi;
+            gi       = loss_scale * Ai.contract(Axi, mat_tp_mat) + λ_2 * xi;
+        }
     }
 }
 
@@ -64,17 +93,33 @@ real_t Problem::eval_f_grad_f(const real_t *x_, real_t *g_) const {
     const std::array mat_tp_mat{Eigen::IndexPair<index_t>{0, 0}};
     real_t sq_norm   = 0;
     real_t sq_norm_x = 0;
+    if (AᵀA.size() > 0 && Aᵀb.size() > 0 && w.size() > 0) {
+        sq_norm += bᵀb;
 #pragma omp parallel for reduction(+ : sq_norm) reduction(+ : sq_norm_x)
-    for (index_t i = 0; i < q; ++i) {
-        auto Ai  = A.chip(i, 2);
-        auto Axi = Ax.chip(i, 2);
-        auto xi  = x.chip(i, 2);
-        auto bi  = b.chip(i, 2);
-        auto gi  = g.chip(i, 2);
-        Axi      = Ai.contract(xi, mat_mat) - bi;
-        gi       = loss_scale * Ai.contract(Axi, mat_tp_mat) + λ_2 * xi;
-        sq_norm += normSquared(Axi);
-        sq_norm_x += normSquared(xi);
+        for (index_t i = 0; i < q; ++i) {
+            auto AᵀAi = AᵀA.chip(i, 2);
+            auto Aᵀbi = Aᵀb.chip(i, 2);
+            auto xi   = x.chip(i, 2);
+            auto wi   = w.chip(i, 2);
+            auto gi   = g.chip(i, 2);
+            wi        = AᵀAi.contract(xi, mat_mat) - 2 * Aᵀbi;
+            sq_norm += dot(wi, xi);
+            sq_norm_x += normSquared(xi);
+            gi = loss_scale * (wi + Aᵀbi) + λ_2 * xi;
+        }
+    } else {
+#pragma omp parallel for reduction(+ : sq_norm) reduction(+ : sq_norm_x)
+        for (index_t i = 0; i < q; ++i) {
+            auto Ai  = A.chip(i, 2);
+            auto Axi = Ax.chip(i, 2);
+            auto xi  = x.chip(i, 2);
+            auto bi  = b.chip(i, 2);
+            auto gi  = g.chip(i, 2);
+            Axi      = Ai.contract(xi, mat_mat) - bi;
+            gi       = loss_scale * Ai.contract(Axi, mat_tp_mat) + λ_2 * xi;
+            sq_norm += normSquared(Axi);
+            sq_norm_x += normSquared(xi);
+        }
     }
     return 0.5 * loss_scale * sq_norm + 0.5 * λ_2 * sq_norm_x;
 }
@@ -153,6 +198,23 @@ void Problem::load_data() {
 void Problem::init(bool cuda) {
     loss_scale = 1 / static_cast<real_t>(m);
     Ax.resize(m, p, q);
+    if (!cuda) {
+        AᵀA.resize(n, n, q);
+        Aᵀb.resize(n, p, q);
+        w.resize(n, p, q);
+        const std::array mat_tp_mat{Eigen::IndexPair<index_t>{0, 0}};
+        bᵀb = 0;
+#pragma omp parallel for reduction(+ : bᵀb)
+        for (index_t i = 0; i < q; ++i) {
+            auto Ai   = A.chip(i, 2);
+            auto AᵀAi = AᵀA.chip(i, 2);
+            auto Aᵀbi = Aᵀb.chip(i, 2);
+            auto bi   = b.chip(i, 2);
+            AᵀAi      = Ai.contract(Ai, mat_tp_mat);
+            Aᵀbi      = Ai.contract(bi, mat_tp_mat);
+            bᵀb += dot(bi, bi);
+        }
+    }
 
     if (cuda)
 #if ACL_WITH_CUDA
