@@ -5,91 +5,103 @@
 #include <alpaqa/util/io/csv.hpp>
 #include <alpaqa/util/lifetime.hpp>
 
+#include <array>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 
 #if WITH_PYTHON
-#include <pybind11/eigen.h>
+#include <pybind11/eigen/tensor.h>
 #endif
 
 namespace acl {
 
+namespace {
+real_t normSquared(const crtensor2 &t) {
+    return cmvec{t.data(), t.size()}.squaredNorm();
+}
+} // namespace
+
 real_t Problem::eval_f(const real_t *x_) const {
-    cmmat x{x_, n, p * q};
-    real_t scal      = 1 / static_cast<real_t>(m);
+    cmtensor3 x{x_, n, p, q};
+    const std::array mat_mat{Eigen::IndexPair<index_t>{1, 0}};
     real_t sq_norm   = 0;
     real_t sq_norm_x = 0;
 #pragma omp parallel for reduction(+ : sq_norm) reduction(+ : sq_norm_x)
-    for (index_t i = 0; i < q; i++) {
-        auto Ai        = A.middleCols(i * n, n);
-        auto xi        = x.middleCols(i * p, p);
-        auto Aixi      = Ax.middleCols(i * p, p);
-        auto bi        = b.middleCols(i * p, p);
-        Aixi.noalias() = Ai * xi;
-        sq_norm += (Aixi - bi).squaredNorm();
-        sq_norm_x += xi.squaredNorm();
+    for (index_t i = 0; i < q; ++i) {
+        auto Ai  = A.chip(i, 2);
+        auto Axi = Ax.chip(i, 2);
+        auto xi  = x.chip(i, 2);
+        auto bi  = b.chip(i, 2);
+        Axi      = Ai.contract(xi, mat_mat) - bi;
+        sq_norm += normSquared(Axi);
+        sq_norm_x += normSquared(xi);
     }
-    return 0.5 * scal * sq_norm + 0.5 * λ_2 * sq_norm_x;
+    return 0.5 * loss_scale * sq_norm + 0.5 * λ_2 * sq_norm_x;
 }
 
 void Problem::eval_grad_f(const real_t *x_, real_t *g_) const {
-    cmmat x{x_, n, p * q};
-    mmat g{g_, n, p * q};
-    real_t scal = 1 / static_cast<real_t>(m);
+    cmtensor3 x{x_, n, p, q};
+    mtensor3 g{g_, n, p, q};
+    const std::array mat_mat{Eigen::IndexPair<index_t>{1, 0}};
+    const std::array mat_tp_mat{Eigen::IndexPair<index_t>{0, 0}};
 #pragma omp parallel for
-    for (index_t i = 0; i < q; i++) {
-        auto Ai        = A.middleCols(i * n, n);
-        auto xi        = x.middleCols(i * p, p);
-        auto Aixi      = Ax.middleCols(i * p, p);
-        auto bi        = b.middleCols(i * p, p);
-        auto gi        = g.middleCols(i * p, p);
-        Aixi.noalias() = Ai * xi - bi;
-        gi.noalias()   = scal * (Ai.adjoint() * Aixi) + λ_2 * xi;
+    for (index_t i = 0; i < q; ++i) {
+        auto Ai  = A.chip(i, 2);
+        auto Axi = Ax.chip(i, 2);
+        auto xi  = x.chip(i, 2);
+        auto bi  = b.chip(i, 2);
+        auto gi  = g.chip(i, 2);
+        Axi      = Ai.contract(xi, mat_mat) - bi;
+        gi       = loss_scale * Ai.contract(Axi, mat_tp_mat) + λ_2 * xi;
     }
 }
 
 real_t Problem::eval_f_grad_f(const real_t *x_, real_t *g_) const {
-    cmmat x{x_, n, p * q};
-    mmat g{g_, n, p * q};
-    real_t scal      = 1 / static_cast<real_t>(m);
+    cmtensor3 x{x_, n, p, q};
+    mtensor3 g{g_, n, p, q};
+    const std::array mat_mat{Eigen::IndexPair<index_t>{1, 0}};
+    const std::array mat_tp_mat{Eigen::IndexPair<index_t>{0, 0}};
     real_t sq_norm   = 0;
     real_t sq_norm_x = 0;
 #pragma omp parallel for reduction(+ : sq_norm) reduction(+ : sq_norm_x)
-    for (index_t i = 0; i < q; i++) {
-        auto Ai        = A.middleCols(i * n, n);
-        auto xi        = x.middleCols(i * p, p);
-        auto Aixi      = Ax.middleCols(i * p, p);
-        auto bi        = b.middleCols(i * p, p);
-        auto gi        = g.middleCols(i * p, p);
-        Aixi.noalias() = Ai * xi - bi;
-        sq_norm += Aixi.squaredNorm();
-        gi.noalias() = scal * (Ai.adjoint() * Aixi) + λ_2 * xi;
-        sq_norm_x += xi.squaredNorm();
+    for (index_t i = 0; i < q; ++i) {
+        auto Ai  = A.chip(i, 2);
+        auto Axi = Ax.chip(i, 2);
+        auto xi  = x.chip(i, 2);
+        auto bi  = b.chip(i, 2);
+        auto gi  = g.chip(i, 2);
+        Axi      = Ai.contract(xi, mat_mat) - bi;
+        gi       = loss_scale * Ai.contract(Axi, mat_tp_mat) + λ_2 * xi;
+        sq_norm += normSquared(Axi);
+        sq_norm_x += normSquared(xi);
     }
-    return 0.5 * scal * sq_norm + 0.5 * λ_2 * sq_norm_x;
+    return 0.5 * loss_scale * sq_norm + 0.5 * λ_2 * sq_norm_x;
 }
 
 void Problem::eval_hess_L_prod(const real_t *x_ [[maybe_unused]],
                                const real_t *y_ [[maybe_unused]], real_t scale,
                                const real_t *v_, real_t *Hv_) const {
-    cmmat v{v_, n, p * q};
-    mmat Hv{Hv_, n, p * q};
-    real_t scal = scale / static_cast<real_t>(m);
+    cmtensor3 v{v_, n, p, q};
+    mtensor3 Hv{Hv_, n, p, q};
+    const std::array mat_mat{Eigen::IndexPair<index_t>{1, 0}};
+    const std::array mat_tp_mat{Eigen::IndexPair<index_t>{0, 0}};
 #pragma omp parallel for
-    for (index_t i = 0; i < q; i++) {
-        auto Ai        = A.middleCols(i * n, n);
-        auto vi        = v.middleCols(i * p, p);
-        auto Hvi       = Hv.middleCols(i * p, p);
-        auto Aixi      = Ax.middleCols(i * p, p);
-        Aixi.noalias() = Ai * vi;
-        Hvi.noalias()  = scal * (Ai.adjoint() * Aixi) + (scale * λ_2) * vi;
+    for (index_t i = 0; i < q; ++i) {
+        auto Ai  = A.chip(i, 2);
+        auto Axi = Ax.chip(i, 2);
+        auto vi  = v.chip(i, 2);
+        auto Hvi = Hv.chip(i, 2);
+        Axi      = Ai.contract(vi, mat_mat);
+        Hvi      = scale * loss_scale * Ai.contract(Axi, mat_tp_mat) +
+              (scale * λ_2) * vi;
     }
 }
 
 real_t Problem::eval_prox_grad_step(real_t γ, const real_t *x_,
                                     const real_t *grad_ψ_, real_t *x̂_,
                                     real_t *p_) const {
-    alpaqa::functions::L1Norm<config_t, real_t> reg = λ_1;
+    alpaqa::functions::L1Norm<config_t> reg = λ_1;
     cmmat x{x_, n, p * q}, grad_ψ{grad_ψ_, n, p * q};
     mmat x̂{x̂_, n, p * q}, step{p_, n, p * q};
     real_t norm = 0;
@@ -103,9 +115,10 @@ real_t Problem::eval_prox_grad_step(real_t γ, const real_t *x_,
 index_t Problem::eval_inactive_indices_res_lna(real_t γ, const real_t *x_,
                                                const real_t *grad_ψ_,
                                                index_t *J_) const {
-    index_t nJ = 0;
+    real_t thres = γ * λ_1;
+    index_t nJ   = 0;
     for (index_t i = 0; i < n * p * q; i++)
-        if (λ_1 == 0 || std::abs(x_[i] - γ * grad_ψ_[i]) > γ * λ_1)
+        if (λ_1 == 0 || std::abs(x_[i] - γ * grad_ψ_[i]) > thres)
             J_[nJ++] = i;
     return nJ;
 }
@@ -123,52 +136,29 @@ void Problem::load_data() {
                                  data_file.string() + '\'');
     m = dims[0];
     n = dims[1];
-    b.resize(m, p * q);
-    A.resize(m, n * q);
+    b.resize(m, p, q);
+    A.resize(m, n, q);
     // Read the measurements
-    for (length_t i = 0; i < p * q; ++i)
-        alpaqa::csv::read_row(csv_file, b.col(i));
+    for (length_t i = 0; i < q; ++i)
+        for (length_t j = 0; j < p; ++j)
+            alpaqa::csv::read_row(csv_file,
+                                  mvec{b.data() + j * m + i * m * p, m});
     // Read the data
-    for (length_t i = 0; i < n * q; ++i)
-        alpaqa::csv::read_row(csv_file, A.col(i));
+    for (length_t i = 0; i < q; ++i)
+        for (length_t j = 0; j < n; ++j)
+            alpaqa::csv::read_row(csv_file,
+                                  mvec{A.data() + j * m + i * m * n, m});
 }
 
 void Problem::init(bool cuda) {
-    Ax.resize(m, p * q);
+    loss_scale = 1 / static_cast<real_t>(m);
+    Ax.resize(m, p, q);
 
+    if (cuda)
 #if ACL_WITH_CUDA
-    if (cuda) {
-        handle     = cublasUniqueCreate();
-        ones       = cudaAlloc<cuDoubleComplex>(F);
-        minus_ones = cudaAlloc<cuDoubleComplex>(F);
-        mus        = cudaAlloc<cuDoubleComplex>(F);
-        A_gpu      = cudaAlloc<cuDoubleComplex>(m * n * F);
-        b_gpu      = cudaAlloc<cuDoubleComplex>(m * F);
-        x_gpu      = cudaAlloc<cuDoubleComplex>(n * F);
-        Ax_gpu     = cudaAlloc<cuDoubleComplex>(m * F);
-        norms_gpu  = cudaAlloc<real_t>(2);
-        cvec work  = cvec::Ones(F);
-        check(cublasSetVector(static_cast<int>(F), sizeof(cuDoubleComplex),
-                              work.data(), 1, ones.get(), 1),
-              "set ones");
-        work = -cvec::Ones(F);
-        check(cublasSetVector(static_cast<int>(F), sizeof(cuDoubleComplex),
-                              work.data(), 1, minus_ones.get(), 1),
-              "set minus_ones");
-        work.setConstant(F, μ);
-        check(cublasSetVector(static_cast<int>(F), sizeof(cuDoubleComplex),
-                              work.data(), 1, mus.get(), 1),
-              "set mus");
-        auto stream1 = acl::cudaStreamAlloc(cudaStreamNonBlocking),
-             stream2 = acl::cudaStreamAlloc(cudaStreamNonBlocking);
-        check(cudaMemcpyAsync(A_gpu.get(), A.data(),
-                              2 * sizeof(real_t) * m * n * F,
-                              cudaMemcpyHostToDevice, stream1.get()),
-              "memcpy A");
-        check(cudaMemcpyAsync(b_gpu.get(), b.data(), 2 * sizeof(real_t) * m * F,
-                              cudaMemcpyHostToDevice, stream2.get()),
-              "memcpy b");
-    }
+        init_cuda();
+#else
+        throw std::runtime_error("CUDA support disabled");
 #endif
 }
 
@@ -220,12 +210,7 @@ py::object Problem::set_λ_2(py::args args, py::kwargs kwargs) {
         throw std::invalid_argument("Unexpected keyword arguments");
     auto old = std::exchange(λ_2, py::cast<real_t>(args[0]));
 #if ACL_WITH_CUDA
-    if (mus) {
-        cvec work = cvec::Constant(F, μ);
-        check(cublasSetVector(static_cast<int>(F), sizeof(cuDoubleComplex),
-                              work.data(), 1, mus.get(), 1),
-              "set mus");
-    }
+    update_λ_2_cuda();
 #endif
     return py::cast(old);
 }
@@ -243,17 +228,16 @@ Problem::Problem(fs::path csv_filename, real_t λ_1, real_t λ_2, bool blas,
 Problem::Problem(const py::kwargs &kwargs) {
     λ_1 = py::cast<real_t>(kwargs["lambda_1"]);
     λ_2 = py::cast<real_t>(kwargs["lambda_2"]);
-    A   = py::cast<crmat>(kwargs["A"]);
-    b   = py::cast<crmat>(kwargs["b"]);
-    q   = b.cols();
-    m   = b.rows();
-    if (A.rows() != m)
+    A   = py::cast<cmtensor3>(kwargs["A"]);
+    b   = py::cast<cmtensor3>(kwargs["b"]);
+    n   = A.dimension(1);
+    m   = A.dimension(0);
+    p   = b.dimension(1);
+    q   = b.dimension(2);
+    if (m != b.dimension(0))
         throw std::invalid_argument("Number of rows of A and b should match");
-    if (auto d = std::div(A.cols(), q); d.rem != 0)
-        throw std::invalid_argument("Number of columns of A should be an "
-                                    "integer multiple of that of b");
-    else
-        n = d.quot;
+    if (q != b.dimension(2))
+        throw std::invalid_argument("Batch size of A and b should match");
     bool cuda = kwargs.contains("cuda") && py::cast<bool>(kwargs["cuda"]);
     init(cuda);
     config_funcs(cuda);

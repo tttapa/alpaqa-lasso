@@ -2,12 +2,10 @@
 
 #include <alpaqa/config/config.hpp>
 #include <alpaqa/dl/dl-problem.h>
-USING_ALPAQA_CONFIG(alpaqa::DefaultConfig);
-using cvec = Eigen::VectorX<cplx_t>;
+#include <unsupported/Eigen/CXX11/Tensor>
 
 #include <filesystem>
 #include <string>
-namespace fs = std::filesystem;
 
 #if ACL_WITH_CUDA
 #include "cuda-util.hpp"
@@ -15,10 +13,23 @@ namespace fs = std::filesystem;
 
 #if WITH_PYTHON
 #include <pybind11/pytypes.h>
-namespace py = pybind11;
 #endif
 
 namespace acl {
+
+namespace py = pybind11;
+namespace fs = std::filesystem;
+USING_ALPAQA_CONFIG(alpaqa::DefaultConfig);
+using tensor3   = Eigen::Tensor<real_t, 3>;
+using mtensor3  = Eigen::TensorMap<tensor3>;
+using cmtensor3 = Eigen::TensorMap<const tensor3>;
+using rtensor3  = Eigen::TensorRef<tensor3>;
+using crtensor3 = Eigen::TensorRef<const tensor3>;
+using tensor2   = Eigen::Tensor<real_t, 2>;
+using mtensor2  = Eigen::TensorMap<tensor2>;
+using cmtensor2 = Eigen::TensorMap<const tensor2>;
+using rtensor2  = Eigen::TensorRef<tensor2>;
+using crtensor2 = Eigen::TensorRef<const tensor2>;
 
 /**
  * ½‖vec(AᵢXᵢ - Bᵢ)‖² + λᵢ‖vec(Xᵢ)‖₁
@@ -33,16 +44,18 @@ class Problem {
     length_t n;         ///< Number of features
     length_t p;         ///< Number of components of each observation (targets)
     length_t q;         ///< Number of least squares terms
+    real_t loss_scale;  ///< Scale factor of the quadratic loss
     real_t λ_1;         ///< ℓ₁-Regularization factor
     real_t λ_2;         ///< ℓ₂-Regularization factor
-    mat A;              ///< Feature matrix (m×n×q, stored as m×nq)
-    mat b;              ///< Observations (m×p×q, stored as m×pq)
-    mutable mat Ax;     ///< Work vector (m×p×q, stored as m×pq)
+    tensor3 A;          ///< Feature matrix (m×n×q)
+    tensor3 b;          ///< Observations (m×p×q)
+    mutable tensor3 Ax; ///< Work vector (m×p×q)
 #if ACL_WITH_CUDA
     cublasUniqueHandle handle;
     cudaUniquePtr<real_t> ones;
     cudaUniquePtr<real_t> minus_ones;
-    cudaUniquePtr<real_t> mus;
+    cudaUniquePtr<real_t> loss_scale_gpu;
+    cudaUniquePtr<real_t> λ_2_gpu;
     cudaUniquePtr<real_t> A_gpu;
     cudaUniquePtr<real_t> b_gpu;
     cudaUniquePtr<real_t> x_gpu;
@@ -76,6 +89,8 @@ class Problem {
                                      cudaStream_t stream) const;
 
   public:
+    void init_cuda();
+    void update_λ_2_cuda();
     /// Objective function.
     real_t eval_f_cuda(const real_t *x_) const;
     /// Objective and its gradient.

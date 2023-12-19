@@ -21,25 +21,25 @@ if (WITH_CUDA)
     find_package(CUDAToolkit REQUIRED)
 endif()
 
-# Compile complex lasso problem module
-alpaqa_add_dl_problem_module("complex-multi-lasso" LINK_ALPAQA
-    FILES "src/complex-multi-lasso.cpp" "src/problem.cpp")
-target_link_libraries(complex-multi-lasso PRIVATE warnings)
-target_link_libraries(complex-multi-lasso PRIVATE OpenMP::OpenMP_CXX)
+# Compile the lasso problem module
+alpaqa_add_dl_problem_module("lasso" LINK_ALPAQA
+    FILES "src/lasso.cpp" "src/problem.cpp")
+target_link_libraries(lasso PRIVATE warnings)
+target_link_libraries(lasso PRIVATE OpenMP::OpenMP_CXX)
 if (WITH_PYTHON)
-    target_link_libraries(complex-multi-lasso PRIVATE
+    target_link_libraries(lasso PRIVATE
         pybind11::pybind11 Python3::Python)
-    target_compile_definitions(complex-multi-lasso PRIVATE WITH_PYTHON)
+    target_compile_definitions(lasso PRIVATE WITH_PYTHON)
 endif()
 if (WITH_CUDA)
-    target_sources(complex-multi-lasso PRIVATE
-        "src/eval_f_cuda.cpp" "src/eval_f_grad_f_cuda.cpp")
+    target_sources(lasso PRIVATE
+        "src/problem-cuda.cpp" "src/eval_f_cuda.cpp" "src/eval_f_grad_f_cuda.cpp")
     if (WITH_CUDA_STATIC)
-        target_link_libraries(complex-multi-lasso PRIVATE
+        target_link_libraries(lasso PRIVATE
             CUDA::cublas_static CUDA::cudart_static)
     else()
-        target_link_libraries(complex-multi-lasso PRIVATE
+        target_link_libraries(lasso PRIVATE
             CUDA::cublas CUDA::cudart)
     endif()
-    target_compile_definitions(complex-multi-lasso PRIVATE ACL_WITH_CUDA)
+    target_compile_definitions(lasso PRIVATE ACL_WITH_CUDA)
 endif()

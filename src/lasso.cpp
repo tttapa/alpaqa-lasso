@@ -1,4 +1,4 @@
-#include <complex-multi-lasso/export.h>
+#include <lasso/export.h>
 
 #include <alpaqa/params/params.hpp>
 #include "problem.hpp"
@@ -64,7 +64,7 @@ auto create_problem(const std::any &user_data) {
 
 /// Main entry point of this file, it is called by the
 /// @ref alpaqa::dl::DLProblem class.
-extern "C" COMPLEX_MULTI_LASSO_EXPORT alpaqa_problem_register_t
+extern "C" LASSO_EXPORT alpaqa_problem_register_t
 register_alpaqa_problem(void *user_data_v) noexcept try {
     using namespace acl;
     // Check and convert user arguments
