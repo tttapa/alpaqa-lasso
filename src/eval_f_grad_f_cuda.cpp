@@ -113,47 +113,51 @@ real_t Problem::eval_f_grad_f_cuda_stream(const real_t *x_, real_t *g_,
           "cudaStreamWaitEvent");
     cublasSetStream(handle.get(), stream2.get());
 #if CUBLAS_VER_MAJOR >= 12
-    check(cublasDgemvStridedBatched(handle.get(),
-                                    /* trans */ CUBLAS_OP_C,
-                                    /* rows A */ static_cast<int>(m),
-                                    /* cols A */ static_cast<int>(n),
-                                    /* α */ ones.get(),
-                                    /* A */ A_gpu.get(),
-                                    /* ld A */ static_cast<int>(m),
-                                    /* stride A */ static_cast<long long>(m) *
-                                        static_cast<long long>(n),
-                                    /* x */ Ax_gpu.get(),
-                                    /* inc x */ 1,
-                                    /* stride x */ static_cast<long long>(m),
-                                    /* β */ λ_2_gpu.get(),
-                                    /* y */ x_gpu.get(),
-                                    /* inc y */ 1,
-                                    /* stride y */ static_cast<int>(n),
-                                    /* batch count */ static_cast<int>(q)),
-          "x ← Aᴴ(A x - b)");
+    if (p == 1)
+        check(
+            cublasDgemvStridedBatched(handle.get(),
+                                      /* trans */ CUBLAS_OP_C,
+                                      /* rows A */ static_cast<int>(m),
+                                      /* cols A */ static_cast<int>(n),
+                                      /* α */ loss_scale_gpu.get(),
+                                      /* A */ A_gpu.get(),
+                                      /* ld A */ static_cast<int>(m),
+                                      /* stride A */ static_cast<long long>(m) *
+                                          static_cast<long long>(n),
+                                      /* x */ Ax_gpu.get(),
+                                      /* inc x */ 1,
+                                      /* stride x */ static_cast<long long>(m),
+                                      /* β */ λ_2_gpu.get(),
+                                      /* y */ x_gpu.get(),
+                                      /* inc y */ 1,
+                                      /* stride y */ static_cast<int>(n),
+                                      /* batch count */ static_cast<int>(q)),
+            "x ← Aᴴ(A x - b)");
+    else
 #endif
-    check(cublasDgemmStridedBatched(handle.get(),
-                                    /* op A */ CUBLAS_OP_C,
-                                    /* op B */ CUBLAS_OP_N,
-                                    /* rows Aᴴ */ static_cast<int>(n),
-                                    /* cols B */ static_cast<int>(p),
-                                    /* cols Aᴴ */ static_cast<int>(m),
-                                    /* α */ loss_scale_gpu.get(),
-                                    /* A */ A_gpu.get(),
-                                    /* ld A */ static_cast<int>(m),
-                                    /* stride A */ static_cast<long long>(m) *
-                                        static_cast<long long>(n),
-                                    /* B */ Ax_gpu.get(),
-                                    /* ld B */ static_cast<int>(m),
-                                    /* stride B */ static_cast<long long>(m) *
-                                        static_cast<long long>(p),
-                                    /* β */ λ_2_gpu.get(),
-                                    /* C */ x_gpu.get(),
-                                    /* ld C */ static_cast<int>(n),
-                                    /* stride C */ static_cast<long long>(n) *
-                                        static_cast<long long>(p),
-                                    /* batch count */ static_cast<int>(q)),
-          "x ← Aᴴ(A x - b)");
+        check(
+            cublasDgemmStridedBatched(handle.get(),
+                                      /* op A */ CUBLAS_OP_C,
+                                      /* op B */ CUBLAS_OP_N,
+                                      /* rows Aᴴ */ static_cast<int>(n),
+                                      /* cols B */ static_cast<int>(p),
+                                      /* cols Aᴴ */ static_cast<int>(m),
+                                      /* α */ loss_scale_gpu.get(),
+                                      /* A */ A_gpu.get(),
+                                      /* ld A */ static_cast<int>(m),
+                                      /* stride A */ static_cast<long long>(m) *
+                                          static_cast<long long>(n),
+                                      /* B */ Ax_gpu.get(),
+                                      /* ld B */ static_cast<int>(m),
+                                      /* stride B */ static_cast<long long>(m) *
+                                          static_cast<long long>(p),
+                                      /* β */ λ_2_gpu.get(),
+                                      /* C */ x_gpu.get(),
+                                      /* ld C */ static_cast<int>(n),
+                                      /* stride C */ static_cast<long long>(n) *
+                                          static_cast<long long>(p),
+                                      /* batch count */ static_cast<int>(q)),
+            "x ← Aᴴ(A x - b)");
     // Copy g
     check(cudaMemcpyAsync(g_, x_gpu.get(),
                           sizeof(real_t) * static_cast<size_t>(n * p * q),
