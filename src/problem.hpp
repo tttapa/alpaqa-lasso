@@ -56,15 +56,21 @@ class Problem {
     real_t bᵀb;
 #if ACL_WITH_CUDA
     cublasUniqueHandle handle;
+    cudaUniquePtr<real_t> zeros;
     cudaUniquePtr<real_t> ones;
     cudaUniquePtr<real_t> minus_ones;
+    cudaUniquePtr<real_t> minus_twos;
     cudaUniquePtr<real_t> loss_scale_gpu;
     cudaUniquePtr<real_t> λ_2_gpu;
     cudaUniquePtr<real_t> A_gpu;
     cudaUniquePtr<real_t> b_gpu;
     cudaUniquePtr<real_t> x_gpu;
+    cudaUniquePtr<real_t> g_gpu;
     cudaUniquePtr<real_t> Ax_gpu;
     cudaUniquePtr<real_t> norms_gpu;
+    cudaUniquePtr<real_t> AᵀA_gpu;
+    cudaUniquePtr<real_t> Aᵀb_gpu;
+    cudaUniquePtr<real_t> w_gpu;
 #endif
 
   public:
@@ -91,9 +97,11 @@ class Problem {
     real_t eval_f_cuda_stream(const real_t *x_, cudaStream_t stream) const;
     real_t eval_f_grad_f_cuda_stream(const real_t *x_, real_t *g_,
                                      cudaStream_t stream) const;
+    real_t eval_f_grad_f_cuda_stream_cached(const real_t *x_, real_t *g_,
+                                            cudaStream_t stream) const;
 
   public:
-    void init_cuda();
+    void init_cuda(bool cache_hessian);
     void update_λ_2_cuda();
     /// Objective function.
     real_t eval_f_cuda(const real_t *x_) const;

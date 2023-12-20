@@ -196,9 +196,10 @@ void Problem::load_data() {
 }
 
 void Problem::init(bool cuda) {
-    loss_scale = 1 / static_cast<real_t>(m);
+    const bool cache_hessian = true;
+    loss_scale               = 1 / static_cast<real_t>(m);
     Ax.resize(m, p, q);
-    if (!cuda) {
+    if (cache_hessian) {
         AᵀA.resize(n, n, q);
         Aᵀb.resize(n, p, q);
         w.resize(n, p, q);
@@ -218,7 +219,7 @@ void Problem::init(bool cuda) {
 
     if (cuda)
 #if ACL_WITH_CUDA
-        init_cuda();
+        init_cuda(cache_hessian);
 #else
         throw std::runtime_error("CUDA support disabled");
 #endif
