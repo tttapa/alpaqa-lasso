@@ -1,5 +1,4 @@
 #include <openmp/omp-problem.hpp>
-#include <openmp/util.hpp>
 
 #include <alpaqa/functions/l1-norm.hpp>
 #include <alpaqa/functions/prox.hpp>

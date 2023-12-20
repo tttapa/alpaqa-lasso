@@ -1,20 +1,8 @@
 #pragma once
 
-#include <unsupported/Eigen/CXX11/Tensor>
 #include <problem.hpp>
 
 namespace acl {
-
-using tensor3   = Eigen::Tensor<real_t, 3>;
-using mtensor3  = Eigen::TensorMap<tensor3>;
-using cmtensor3 = Eigen::TensorMap<const tensor3>;
-using rtensor3  = Eigen::TensorRef<tensor3>;
-using crtensor3 = Eigen::TensorRef<const tensor3>;
-using tensor2   = Eigen::Tensor<real_t, 2>;
-using mtensor2  = Eigen::TensorMap<tensor2>;
-using cmtensor2 = Eigen::TensorMap<const tensor2>;
-using rtensor2  = Eigen::TensorRef<tensor2>;
-using crtensor2 = Eigen::TensorRef<const tensor2>;
 
 class OMPProblem : public Problem {
   public:
@@ -45,15 +33,15 @@ class OMPProblem : public Problem {
 
   private:
     struct {
-        crtensor3 A;
-        crtensor3 b;
+        std::optional<crmat> A;
+        std::optional<crmat> b;
     } data;
     struct {
-        tensor3 A;
-        tensor3 b;
+        mat A;
+        mat b;
     } storage;
     struct {
-        tensor3 Ax;
+        mat Ax;
     } mutable work;
 #if WITH_PYTHON
     struct {

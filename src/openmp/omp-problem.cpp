@@ -24,42 +24,41 @@ void OMPProblem::load_data(fs::path csv_file) {
     n = dims[1];
     p = dims.size() > 2 ? dims[2] : 1;
     q = dims.size() > 3 ? dims[3] : 1;
-    storage.b.resize(m, p, q);
-    storage.A.resize(m, n, q);
+    storage.b.resize(m, p * q);
+    storage.A.resize(m, n * q);
     // Read the measurements
-    for (length_t i = 0; i < q; ++i)
-        for (length_t j = 0; j < p; ++j)
-            alpaqa::csv::read_row(
-                ifile, mvec{storage.b.data() + j * m + i * m * p, m});
+    for (length_t i = 0; i < p * q; ++i)
+        alpaqa::csv::read_row(ifile, storage.b.col(i));
     // Read the data
-    for (length_t i = 0; i < q; ++i)
-        for (length_t j = 0; j < n; ++j)
-            alpaqa::csv::read_row(
-                ifile, mvec{storage.A.data() + j * m + i * m * n, m});
-    data.A = storage.A;
-    data.b = storage.b;
+    for (length_t i = 0; i < n * q; ++i)
+        alpaqa::csv::read_row(ifile, storage.A.col(i));
+    data.A.emplace(crmat{storage.A});
+    data.b.emplace(crmat{storage.b});
 }
 
 #if WITH_PYTHON
 void OMPProblem::load_data(py::kwargs kwargs) {
-    py_storage.A = kwargs["A"];
-    py_storage.b = kwargs["b"];
-    data.A       = py::cast<cmtensor3>(py_storage.A);
-    data.b       = py::cast<cmtensor3>(py_storage.b);
-    n            = data.A.dimension(1);
-    m            = data.A.dimension(0);
-    p            = data.b.dimension(1);
-    q            = data.b.dimension(2);
-    if (m != data.b.dimension(0))
+    using cmtensor3 = Eigen::TensorMap<const Eigen::Tensor<real_t, 3>>;
+    py_storage.A    = kwargs["A"];
+    py_storage.b    = kwargs["b"];
+    auto A_tensor   = py::cast<cmtensor3>(py_storage.A);
+    auto b_tensor   = py::cast<cmtensor3>(py_storage.b);
+    n               = A_tensor.dimension(1);
+    m               = A_tensor.dimension(0);
+    p               = b_tensor.dimension(1);
+    q               = A_tensor.dimension(2);
+    if (m != b_tensor.dimension(0))
         throw std::invalid_argument("Number of rows of A and b should match");
-    if (q != data.b.dimension(2))
+    if (q != b_tensor.dimension(2))
         throw std::invalid_argument("Batch size of A and b should match");
+    data.A.emplace(cmmat{A_tensor.data(), m, n * q});
+    data.b.emplace(cmmat{b_tensor.data(), m, p * q});
 }
 #endif
 
 void OMPProblem::init() {
     loss_scale = 1 / static_cast<real_t>(m);
-    work.Ax.resize(m, p, q);
+    work.Ax.resize(m, p * q);
 }
 
 } // namespace acl
