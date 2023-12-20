@@ -77,8 +77,16 @@ auto load_tensor(const py::object &o) {
 }
 
 void CUDAProblem::load_data(py::kwargs kwargs) {
-    auto A = load_tensor<3>(kwargs["A"]);
-    auto b = load_tensor<3>(kwargs["b"]);
+    if (kwargs.contains("lambda_1"))
+        λ_1 = py::cast<real_t>(kwargs.attr("pop")("lambda_1"));
+    if (kwargs.contains("lambda_2"))
+        λ_2 = py::cast<real_t>(kwargs.attr("pop")("lambda_2"));
+    auto A = load_tensor<3>(kwargs.attr("pop")("A"));
+    auto b = load_tensor<3>(kwargs.attr("pop")("b"));
+    if (!kwargs.empty())
+        throw std::invalid_argument(
+            "Invalid keyword arguments: " +
+            py::cast<std::string>(py::str(", ").attr("join")(kwargs)));
     if (A.shape[0] != b.shape[0])
         throw std::logic_error("Mismatching rows of A and b");
     if (A.shape[2] != b.shape[2])

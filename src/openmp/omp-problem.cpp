@@ -39,14 +39,18 @@ void OMPProblem::load_data(fs::path csv_file) {
 #if WITH_PYTHON
 void OMPProblem::load_data(py::kwargs kwargs) {
     using cmtensor3 = Eigen::TensorMap<const Eigen::Tensor<real_t, 3>>;
-    py_storage.A    = kwargs["A"];
-    py_storage.b    = kwargs["b"];
-    auto A_tensor   = py::cast<cmtensor3>(py_storage.A);
-    auto b_tensor   = py::cast<cmtensor3>(py_storage.b);
-    n               = A_tensor.dimension(1);
-    m               = A_tensor.dimension(0);
-    p               = b_tensor.dimension(1);
-    q               = A_tensor.dimension(2);
+    if (kwargs.contains("lambda_1"))
+        λ_1 = py::cast<real_t>(kwargs.attr("pop")("lambda_1"));
+    if (kwargs.contains("lambda_2"))
+        λ_2 = py::cast<real_t>(kwargs.attr("pop")("lambda_2"));
+    py_storage.A  = kwargs.attr("pop")("A");
+    py_storage.b  = kwargs.attr("pop")("b");
+    auto A_tensor = py::cast<cmtensor3>(py_storage.A);
+    auto b_tensor = py::cast<cmtensor3>(py_storage.b);
+    n             = A_tensor.dimension(1);
+    m             = A_tensor.dimension(0);
+    p             = b_tensor.dimension(1);
+    q             = A_tensor.dimension(2);
     if (m != b_tensor.dimension(0))
         throw std::invalid_argument("Number of rows of A and b should match");
     if (q != b_tensor.dimension(2))

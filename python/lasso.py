@@ -12,7 +12,7 @@ rng = np.random.default_rng(seed=12345)
 
 # Number of observations, number of features, number of targets, number of batches
 m, n, p, q = 16, 32, 2, 1
-m, n, p, q = 1024, 2048, 1, 64
+# m, n, p, q = 2048, 4096, 1, 50
 sparsity = 0.1
 
 # Random data matrix A
@@ -37,12 +37,12 @@ problem = alpaqa.DLProblem(
     b=np.asfortranarray(b),
     lambda_1=λ,
     lambda_2=0,
-    cuda=False,
+    cuda=True,
 )
 # You can change the regularization after initialization
 if False:
-    problem.call_extra_func("set_lambda_1", λ := 1)
-    problem.call_extra_func("set_lambda_2", 0)
+    problem.call_extra_func("set_lambda_1", λ := 0.01)
+    problem.call_extra_func("set_lambda_2", 0.01)
 
 cnt = alpaqa.problem_with_counters(problem)
 
@@ -73,7 +73,9 @@ x, stats = solver(cnt.problem, dict(tolerance=1e-8), x=x0)
 x = x.reshape((n, p, q), order="F")
 Ax = np.einsum("mnq,npq->mpq", A, x)
 print(cnt.evaluations)
+print(problem)
 pprint(stats)
+cb.resids += [stats["ε"]]
 
 # %%
 

@@ -57,10 +57,11 @@ auto create_problem(const str_param_t &opts) {
 #if WITH_PYTHON
 using py_param_t = std::tuple<py::args, py::kwargs>;
 auto create_problem(const py_param_t &opts) {
-    const auto &[args, kwargs] = opts;
+    auto [args, kwargs] = opts;
     if (!args.empty())
         throw std::invalid_argument("Positional arguments not supported");
-    bool cuda = kwargs.contains("cuda") && py::cast<bool>(kwargs["cuda"]);
+    bool cuda =
+        kwargs.contains("cuda") && py::cast<bool>(kwargs.attr("pop")("cuda"));
     std::unique_ptr<Problem> problem;
     if (cuda)
 #if ACL_WITH_CUDA
