@@ -1,4 +1,7 @@
 #include <cuda/cuda-problem.hpp>
+
+#include <alpaqa/util/io/csv.hpp>
+#include <fstream>
 #include <stdexcept>
 
 #if WITH_PYTHON
@@ -7,8 +10,45 @@
 
 namespace acl {
 
-void CUDAProblem::load_data([[maybe_unused]] fs::path csv_file) {
-    throw std::logic_error("CSV loading not yet implemented");
+void CUDAProblem::load_data(fs::path csv_file) {
+    data_file = std::move(csv_file);
+    std::ifstream ifile{data_file};
+    if (!ifile)
+        throw std::runtime_error("Unable to open file '" + data_file.string() +
+                                 "'");
+    // Load dimensions (#observations, #features, #targets, #terms)
+    auto dims = alpaqa::csv::read_row_std_vector<length_t>(ifile);
+    if (dims.size() < 2 || dims.size() > 4)
+        throw std::runtime_error("Invalid problem dimensions in data file \'" +
+                                 data_file.string() + '\'');
+    m        = dims[0];
+    n        = dims[1];
+    p        = dims.size() > 2 ? dims[2] : 1;
+    q        = dims.size() > 3 ? dims[3] : 1;
+    gpu.data = {
+        .A = acl::cudaAlloc<real_t>(static_cast<size_t>(m * n * q)),
+        .b = acl::cudaAlloc<real_t>(static_cast<size_t>(m * p * q)),
+    };
+    // Read the measurements
+    mat work(m, p);
+    for (length_t i = 0; i < q; ++i) {
+        for (length_t j = 0; j < p; ++j)
+            alpaqa::csv::read_row(ifile, work.col(j));
+        check(cudaMemcpy(gpu.data.b.get() + i * m * p, work.data(),
+                         sizeof(real_t) * static_cast<size_t>(m * p),
+                         cudaMemcpyHostToDevice),
+              "memcpy b");
+    }
+    work.resize(m, n);
+    // Read the data
+    for (length_t i = 0; i < q; ++i) {
+        for (length_t j = 0; j < n; ++j)
+            alpaqa::csv::read_row(ifile, work.col(j));
+        check(cudaMemcpy(gpu.data.A.get() + i * m * n, work.data(),
+                         sizeof(real_t) * static_cast<size_t>(m * n),
+                         cudaMemcpyHostToDevice),
+              "memcpy A");
+    }
 }
 
 #if WITH_PYTHON
@@ -70,6 +110,7 @@ void CUDAProblem::load_data(py::kwargs kwargs) {
 #endif
 
 void CUDAProblem::init() {
+    loss_scale    = 1 / static_cast<real_t>(m);
     handle        = acl::cublasUniqueCreate();
     gpu.constants = {
         .zeros      = acl::cudaAlloc<real_t>(static_cast<size_t>(q)),

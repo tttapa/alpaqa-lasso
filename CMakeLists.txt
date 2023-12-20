@@ -18,6 +18,10 @@ if (WITH_PYTHON)
     find_package(pybind11 REQUIRED)
 endif()
 if (WITH_CUDA)
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        set(CMAKE_CUDA_ARCHITECTURES "native")
+    endif()
+    enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
 endif()
 
@@ -46,6 +50,9 @@ if (WITH_CUDA)
         "src/cuda/f.cpp"
         "src/cuda/grad-f.cpp"
         "src/cuda/f-grad-f.cpp"
+        "src/cuda/hess-L-prod.cpp"
+        "src/cuda/prox-grad-step.cpp"
+        "src/cuda/prox-grad-step.cu"
     )
     if (WITH_CUDA_STATIC)
         target_link_libraries(lasso PRIVATE
