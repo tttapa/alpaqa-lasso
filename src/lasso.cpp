@@ -1,13 +1,21 @@
 #include <lasso/export.h>
 
+#include <cuda/cuda-problem.hpp>
+#include <openmp/omp-problem.hpp>
+#include <problem.hpp>
+
 #include <alpaqa/params/params.hpp>
-#include "problem.hpp"
 
 #include <algorithm>
 #include <any>
+#include <memory>
 #include <span>
 #include <stdexcept>
 #include <string_view>
+
+#if WITH_PYTHON
+#include <pybind11/cast.h>
+#endif
 
 namespace acl {
 
@@ -24,9 +32,6 @@ auto create_problem(const str_param_t &opts) {
     alpaqa::params::set_params(λ, "lambda_1", opts, used);
     real_t μ = 0;
     alpaqa::params::set_params(μ, "lambda_2", opts, used);
-    // BLAS
-    bool blas = false;
-    alpaqa::params::set_params(blas, "blas", opts, used);
     // CUDA
     bool cuda = false;
     alpaqa::params::set_params(cuda, "cuda", opts, used);
@@ -36,7 +41,17 @@ auto create_problem(const str_param_t &opts) {
     if (unused_opt != used.end())
         throw std::invalid_argument("Unused problem option: " +
                                     std::string(opts[unused_idx]));
-    return std::make_unique<Problem>(datafilename, λ, μ, blas, cuda);
+    std::unique_ptr<Problem> problem;
+    if (cuda)
+#if ACL_WITH_CUDA
+        problem = std::make_unique<CUDAProblem>();
+#else
+        throw std::invalid_argument("CUDA support disabled");
+#endif
+    else
+        problem = std::make_unique<OMPProblem>();
+    problem->initialize(datafilename, λ, μ);
+    return problem;
 }
 
 #if WITH_PYTHON
@@ -45,7 +60,18 @@ auto create_problem(const py_param_t &opts) {
     const auto &[args, kwargs] = opts;
     if (!args.empty())
         throw std::invalid_argument("Positional arguments not supported");
-    return std::make_unique<Problem>(kwargs);
+    bool cuda = kwargs.contains("cuda") && py::cast<bool>(kwargs["cuda"]);
+    std::unique_ptr<Problem> problem;
+    if (cuda)
+#if ACL_WITH_CUDA
+        problem = std::make_unique<CUDAProblem>();
+#else
+        throw std::invalid_argument("CUDA support disabled");
+#endif
+    else
+        problem = std::make_unique<OMPProblem>();
+    problem->initialize(kwargs);
+    return problem;
 }
 #endif
 

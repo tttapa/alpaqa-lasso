@@ -22,10 +22,19 @@ if (WITH_CUDA)
 endif()
 
 # Compile the lasso problem module
-alpaqa_add_dl_problem_module("lasso" LINK_ALPAQA
-    FILES "src/lasso.cpp" "src/problem.cpp")
+alpaqa_add_dl_problem_module("lasso" LINK_ALPAQA FILES
+    "src/lasso.cpp"
+    "src/problem.cpp"
+    "src/openmp/omp-problem.cpp"
+    "src/openmp/f.cpp"
+    "src/openmp/grad-f.cpp"
+    "src/openmp/f-grad-f.cpp"
+    "src/openmp/hess-L-prod.cpp"
+    "src/openmp/prox-grad-step.cpp"
+)
 target_link_libraries(lasso PRIVATE warnings)
 target_link_libraries(lasso PRIVATE OpenMP::OpenMP_CXX)
+target_include_directories(lasso PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 if (WITH_PYTHON)
     target_link_libraries(lasso PRIVATE
         pybind11::pybind11 Python3::Python)
@@ -33,7 +42,11 @@ if (WITH_PYTHON)
 endif()
 if (WITH_CUDA)
     target_sources(lasso PRIVATE
-        "src/problem-cuda.cpp" "src/eval_f_cuda.cpp" "src/eval_f_grad_f_cuda.cpp")
+        "src/cuda/cuda-problem.cpp"
+        "src/cuda/f.cpp"
+        "src/cuda/grad-f.cpp"
+        "src/cuda/f-grad-f.cpp"
+    )
     if (WITH_CUDA_STATIC)
         target_link_libraries(lasso PRIVATE
             CUDA::cublas_static CUDA::cudart_static)
