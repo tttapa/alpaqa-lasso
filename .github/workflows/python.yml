@@ -147,12 +147,17 @@ jobs:
       run: >
         git clone https://github.com/kul-optec/alpaqa
         --branch new-dl-api --single-branch --depth=1
+    - name: Install Eigen
+      run: >
+        ./scripts/install-eigen.sh eigen
+      working-directory: alpaqa
     # Build alpaqa Python interface
     - name: alpaqa config
       run: |
         cat > py-build-cmake.local.toml << EOF
         [cmake.options]
         "ALPAQA_WITH_CASADI:BOOL" = "Off"
+        "CMAKE_FIND_ROOT_PATH" = "$PWD/eigen"
         EOF
       working-directory: alpaqa
         # Build
