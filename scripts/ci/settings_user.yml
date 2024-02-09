@@ -1,0 +1,1 @@
+arch: [ci-native, ci-x86_64, ci-arm64, ci-universal2]

@@ -283,6 +283,7 @@ jobs:
       run: |
         conan --version
         conan profile detect --force
+        conan config install scripts/ci/settings_user.yml
     # Dependencies
     - name: Download alpaqa
       run: >
