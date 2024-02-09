@@ -52,19 +52,17 @@ exclude = []
 minimum_version = "3.24"
 source_path = "."
 args = ["-Wdev"]
+preset = "conan-default"
+config = "Release"
 build_args = ["-j"]
 install_components = ["python_modules"]
 [tool.py-build-cmake.cmake.options]
 "WITH_PYTHON:BOOL" = "On"
 
 [tool.py-build-cmake.linux.cmake]
-# config = ["RelWithDebInfo"]
-# generator = "Ninja Multi-Config"
-[tool.py-build-cmake.mac.cmake]
-config = ["RelWithDebInfo"]
 generator = "Ninja Multi-Config"
-[tool.py-build-cmake.windows.cmake]
-config = ["RelWithDebInfo"]
+[tool.py-build-cmake.mac.cmake]
+generator = "Ninja Multi-Config"
 
 [tool.py-build-cmake.editable]
 mode = "symlink"
