@@ -6,7 +6,7 @@
 
 namespace acl {
 
-class OMPProblem : public Problem {
+class ComplexOMPProblem : public Problem {
   public:
     /// Objective function.
     real_t eval_f(const real_t *x_) const override;
@@ -25,6 +25,11 @@ class OMPProblem : public Problem {
     index_t eval_inactive_indices_res_lna(real_t γ, const real_t *x_,
                                           const real_t *grad_ψ_,
                                           index_t *J_) const override;
+    bool provides_eval_inactive_indices_res_lna() const override {
+        return false;
+    }
+    /// Get the number of (real) variables.
+    length_t get_n() const override { return 2 * n * p * q; }
 
   private:
     void load_data(fs::path csv_file) override;
@@ -35,15 +40,15 @@ class OMPProblem : public Problem {
 
   private:
     struct {
-        std::optional<crmat> A;
-        std::optional<crmat> b;
+        std::optional<crcmat> A;
+        std::optional<crcmat> b;
     } data;
     struct {
-        mat A;
-        mat b;
+        cmat A;
+        cmat b;
     } storage;
     struct {
-        mat Ax;
+        cmat Ax;
     } mutable work;
 #if WITH_PYTHON
     struct {
@@ -53,7 +58,12 @@ class OMPProblem : public Problem {
 #endif
 
   public:
-    OMPProblem() = default;
+    [[nodiscard]] std::string get_name() const override {
+        return "complex " + Problem::get_name();
+    }
+
+  public:
+    ComplexOMPProblem() = default;
 };
 
 } // namespace acl

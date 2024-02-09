@@ -1,5 +1,6 @@
 #include <lasso/export.h>
 
+#include <complex-openmp/complex-omp-problem.hpp>
 #include <openmp/omp-problem.hpp>
 #include <problem.hpp>
 #if ACL_WITH_CUDA
@@ -16,7 +17,10 @@
 #include <string_view>
 
 #if WITH_PYTHON
-#include <pybind11/cast.h>
+#include <pybind11/pybind11.h>
+
+template struct LASSO_EXPORT alpaqa::detail::function_wrapper_t<py::object(
+    void *, py::args, py::kwargs)>;
 #endif
 
 namespace acl {
@@ -71,8 +75,14 @@ auto create_problem(const py_param_t &opts) {
 #else
         throw std::invalid_argument("CUDA support disabled");
 #endif
-    else
-        problem = std::make_unique<OMPProblem>();
+    else {
+        auto np     = py::module_::import("numpy");
+        auto cfloat = np.attr("cfloat");
+        if (kwargs.contains("A") && kwargs["A"].attr("dtype").equal(cfloat))
+            problem = std::make_unique<ComplexOMPProblem>();
+        else
+            problem = std::make_unique<OMPProblem>();
+    }
     problem->initialize(kwargs);
     return problem;
 }

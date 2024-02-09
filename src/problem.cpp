@@ -12,15 +12,16 @@ namespace acl {
 void Problem::config_funcs() {
     using P = Problem;
     using alpaqa::member_caller;
-    funcs.n                   = n * p * q; // number of unknowns
+    funcs.n                   = get_n(); // number of unknowns
     funcs.m                   = 0;
     funcs.eval_grad_f         = member_caller<&P::eval_grad_f>();
     funcs.eval_hess_L_prod    = member_caller<&P::eval_hess_L_prod>();
     funcs.eval_f              = member_caller<&P::eval_f>();
     funcs.eval_f_grad_f       = member_caller<&P::eval_f_grad_f>();
     funcs.eval_prox_grad_step = member_caller<&P::eval_prox_grad_step>();
-    funcs.eval_inactive_indices_res_lna =
-        member_caller<&P::eval_inactive_indices_res_lna>();
+    if (provides_eval_inactive_indices_res_lna())
+        funcs.eval_inactive_indices_res_lna =
+            member_caller<&P::eval_inactive_indices_res_lna>();
     funcs.eval_g           = member_caller<&P::eval_g>();
     funcs.eval_grad_g_prod = member_caller<&P::eval_grad_g_prod>();
     funcs.eval_jac_g       = member_caller<&P::eval_jac_g>();

@@ -8,11 +8,11 @@
 
 #if WITH_PYTHON
 #include <pybind11/pytypes.h>
+namespace py = pybind11;
 #endif
 
 namespace acl {
 
-namespace py = pybind11;
 namespace fs = std::filesystem;
 USING_ALPAQA_CONFIG(alpaqa::DefaultConfig);
 
@@ -52,13 +52,16 @@ class Problem {
     virtual index_t eval_inactive_indices_res_lna(real_t γ, const real_t *x_,
                                                   const real_t *grad_ψ_,
                                                   index_t *J_) const = 0;
+    virtual bool provides_eval_inactive_indices_res_lna() const { return true; }
+    /// Get the number of (real) variables.
+    virtual length_t get_n() const { return n * p * q; }
 
   public:
     /// Constraints function (unconstrained).
     void eval_g(const real_t *, real_t *) const {}
     /// Gradient-vector product of constraints.
     void eval_grad_g_prod(const real_t *, const real_t *, real_t *gr_) const {
-        mvec{gr_, n * p * q}.setZero();
+        mvec{gr_, get_n()}.setZero();
     }
     /// Jacobian of constraints.
     void eval_jac_g(const real_t *, real_t *) const {}
@@ -101,11 +104,13 @@ class Problem {
         init();
         config_funcs();
     }
+#if WITH_PYTHON
     void initialize(py::kwargs kwargs) {
         load_data(std::move(kwargs));
         init();
         config_funcs();
     }
+#endif
 };
 
 } // namespace acl

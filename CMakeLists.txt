@@ -35,6 +35,12 @@ alpaqa_add_dl_problem_module("lasso" LINK_ALPAQA FILES
     "src/openmp/f-grad-f.cpp"
     "src/openmp/hess-L-prod.cpp"
     "src/openmp/prox-grad-step.cpp"
+    "src/complex-openmp/complex-omp-problem.cpp"
+    "src/complex-openmp/f.cpp"
+    "src/complex-openmp/grad-f.cpp"
+    "src/complex-openmp/f-grad-f.cpp"
+    "src/complex-openmp/hess-L-prod.cpp"
+    "src/complex-openmp/prox-grad-step.cpp"
 )
 set_property(TARGET lasso PROPERTY OUTPUT_NAME alpaqa-lasso)
 target_link_libraries(lasso PRIVATE warnings)
