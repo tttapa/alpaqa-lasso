@@ -159,6 +159,7 @@ jobs:
         cat > py-build-cmake.local.toml << EOF
         [cmake.options]
         "ALPAQA_WITH_CASADI:BOOL" = "Off"
+        "ALPAQA_WITH_OCP:BOOL" = "Off"
         "CMAKE_FIND_ROOT_PATH" = "$PWD/eigen"
         [mac.cmake]
         config = "Release"
