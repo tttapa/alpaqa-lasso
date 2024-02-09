@@ -228,6 +228,82 @@ jobs:
         name: alpaqa-python-${{ matrix.host }}
         path: dist/*.whl
 
+  build-macos-cibw:
+    strategy:
+      matrix:
+        host: [macos-intel]
+    runs-on: macos-13
+    env:
+      CMAKE_C_COMPILER_LAUNCHER: ccache
+      CMAKE_CXX_COMPILER_LAUNCHER: ccache
+      DEVELOPER_DIR: /Applications/Xcode_15.0.1.app/Contents/Developer
+      FC: NOTFOUND
+    steps:
+    # Git clone
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    # Tools
+    - name: Install tools
+      run: |
+        brew install ccache && ccache --version
+    # Ccache
+    - name: Prepare ccache directory
+      id: ccache
+      run: |
+        echo "CCACHE_DIR=${{ runner.temp }}/.ccache" >> "$GITHUB_ENV"
+        echo "ccache-dir=${{ runner.temp }}/.ccache" >> "$GITHUB_OUTPUT"
+        mkdir -p "${{ runner.temp }}/.ccache"
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.ccache.outputs.ccache-dir }}
+        key: ${{ runner.os }}-python-${{ matrix.host }}-ccache-${{ github.run_id }}
+        restore-keys: ${{ runner.os }}-python-${{ matrix.host }}-ccache
+        save-always: true
+    # Install OpenMP
+    - name: Install OpenMP
+      run: |
+        curl -O https://mac.r-project.org/openmp/openmp-16.0.4-darwin20-Release.tar.gz
+        sudo tar fvxz openmp-16.0.4-darwin20-Release.tar.gz -C /
+    # Conan
+    - name: Install Conan
+      id: conan
+      run: |
+        python3.12 -m pip install -U pip conan build ninja
+        echo "conan-home=$(conan config home)" >> "$GITHUB_OUTPUT"
+    - name: Cache Conan
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.conan.outputs.conan-home }}
+        key: ${{ runner.os }}-python-${{ matrix.host }}-conan-${{ github.run_id }}
+        restore-keys: ${{ runner.os }}-python-${{ matrix.host }}-conan
+        save-always: true
+    - name: Conan detect
+      run: |
+        conan --version
+        conan profile detect --force
+    # Dependencies
+    - name: Download alpaqa
+      run: >
+        git clone https://github.com/kul-optec/alpaqa
+        --branch new-dl-api --single-branch --depth=1
+    # Build
+    - name: Build Wheels
+      uses: pypa/cibuildwheel@ce3fb7832089eb3e723a0a99cab7f3eaccf074fd
+      with:
+        package-dir: .
+        output-dir: dist
+      env:
+        CIBW_ARCHS_MACOS: 'x86_64 arm64 universal2'
+        CIBW_BUILD: 'cp39-*'
+    # Upload
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: alpaqa-lasso-python-cibw-${{ matrix.host }}
+        path: dist/*.whl
+
   test-macos:
     needs: [build-macos]
     strategy:
