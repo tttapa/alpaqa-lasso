@@ -2,6 +2,7 @@ import os
 import re
 import platform
 from pathlib import Path
+from subprocess import run
 
 os.chdir(Path(__file__).parent.parent.parent)
 
@@ -50,6 +51,7 @@ Path("cibw.profile").write_text(cross_profile if archs else native_profile)
 if archs:
     Path("cibw.toolchain").write_text(cross_toolchain)
 
+opts = dict(shell=True, check=True)
 if os.path.isdir("alpaqa"):
-    os.system("conan create ./alpaqa -pr:h ./cibw.profile")
-os.system("conan install . -pr:h ./cibw.profile --build=missing")
+    run("conan create ./alpaqa -pr:h ./cibw.profile --build=missing", **opts)
+run("conan install . -pr:h ./cibw.profile --build=missing", **opts)
