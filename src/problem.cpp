@@ -4,7 +4,7 @@
 #include <string>
 
 #if WITH_PYTHON
-#include <pybind11/eigen/tensor.h>
+#include <pybind11/cast.h>
 #endif
 
 namespace acl {

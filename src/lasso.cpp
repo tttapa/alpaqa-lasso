@@ -1,8 +1,10 @@
 #include <lasso/export.h>
 
-#include <cuda/cuda-problem.hpp>
 #include <openmp/omp-problem.hpp>
 #include <problem.hpp>
+#if ACL_WITH_CUDA
+#include <cuda/cuda-problem.hpp>
+#endif
 
 #include <alpaqa/params/params.hpp>
 
@@ -76,15 +78,19 @@ auto create_problem(const py_param_t &opts) {
 }
 #endif
 
-auto create_problem(const std::any &user_data) {
-    if (const auto *opts = std::any_cast<str_param_t>(&user_data))
+auto create_problem(alpaqa_register_arg_t user_data) {
+    using arg_t = alpaqa_register_arg_t;
+    if (user_data.type == arg_t::alpaqa_register_arg_strings) {
+        const auto *opts = reinterpret_cast<str_param_t *>(user_data.data);
         return create_problem(*opts);
+    }
 #if WITH_PYTHON
-    else if (const auto *opts = std::any_cast<py_param_t>(&user_data))
+    else if (user_data.type == arg_t::alpaqa_register_arg_py_args) {
+        const auto *opts = reinterpret_cast<py_param_t *>(user_data.data);
         return create_problem(*opts);
+    }
 #endif
-    else
-        throw std::invalid_argument("Unsupported user data type");
+    throw std::invalid_argument("Unsupported user data type");
 }
 
 } // namespace acl
@@ -92,12 +98,11 @@ auto create_problem(const std::any &user_data) {
 /// Main entry point of this file, it is called by the
 /// @ref alpaqa::dl::DLProblem class.
 extern "C" LASSO_EXPORT alpaqa_problem_register_t
-register_alpaqa_problem(void *user_data_v) noexcept try {
+register_alpaqa_problem(alpaqa_register_arg_t user_data) noexcept try {
     using namespace acl;
     // Check and convert user arguments
-    if (!user_data_v)
+    if (!user_data.data)
         throw std::invalid_argument("Missing user data");
-    const auto &user_data = *reinterpret_cast<std::any *>(user_data_v);
     // Build and expose problem
     auto problem = create_problem(user_data);
     alpaqa_problem_register_t result;
@@ -114,4 +119,9 @@ register_alpaqa_problem(void *user_data_v) noexcept try {
     return result;
 } catch (...) {
     return {.exception = new alpaqa_exception_ptr_t{std::current_exception()}};
+}
+
+extern "C" LASSO_EXPORT alpaqa_dl_abi_version_t
+register_alpaqa_problem_version() noexcept {
+    return ALPAQA_DL_ABI_VERSION;
 }
