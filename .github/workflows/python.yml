@@ -106,13 +106,13 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        name: alpaqa-python-${{ matrix.host }}
+        name: alpaqa-lasso-python-${{ matrix.host }}
         path: dist/*.whl
 
   build-macos:
     strategy:
       matrix:
-        host: [macos-install]
+        host: [macos-intel]
     runs-on: macos-13
     env:
       CMAKE_C_COMPILER_LAUNCHER: ccache
@@ -198,5 +198,63 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
+        name: alpaqa-lasso-python-${{ matrix.host }}
+        path: dist/*.whl
+    # Build alpaqa Python interface
+    - name: alpaqa config
+      run: |
+        cat > py-build-cmake.local.toml << EOF
+        [cmake]
+        preset = "conan-default"
+        [mac.cmake]
+        config = "Release"
+        [cmake.options]
+        "ALPAQA_WITH_CASADI:BOOL" = "Off"
+        "USE_GLOBAL_PYBIND11:BOOL" = "On"
+        EOF
+      working-directory: alpaqa
+    - name: Conan install alpaqa
+      run: >
+        conan install . -pr:h ${{ matrix.host }}.profile -o with_python=True
+      working-directory: alpaqa
+    - name: Build alpaqa
+      run: >
+        python3.12 -m build -w -o ../dist
+      working-directory: alpaqa
+    # Upload
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
         name: alpaqa-python-${{ matrix.host }}
         path: dist/*.whl
+
+  test-macos:
+    needs: [build-macos]
+    strategy:
+      matrix:
+        host: [macos-intel]
+    runs-on: macos-13
+    steps:
+    # Git clone
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    # Install OpenMP
+    - name: Install OpenMP
+      run: |
+        curl -O https://mac.r-project.org/openmp/openmp-16.0.4-darwin20-Release.tar.gz
+        sudo tar fvxz openmp-16.0.4-darwin20-Release.tar.gz -C /
+    # Download
+    - name: Download
+      uses: actions/download-artifact@v4
+      with:
+        name: alpaqa-python-${{ matrix.host }}
+        path: dist
+    # Install
+    - name: Install
+      run: python3.12 -m pip install alpaqa-lasso==1.0.0a17.dev0 matplotlib -f ./dist
+    # Run
+    - name: Run
+      run: python3.12 python/lasso.py
+      env:
+        MPLBACKEND: SVG

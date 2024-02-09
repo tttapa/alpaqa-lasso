@@ -34,7 +34,7 @@ problem = alpaqa.problems.lasso.load(
     cuda=False,
 )
 # You can change the regularization after initialization
-if False:
+if True:
     problem.call_extra_func("set_lambda_1", λ := 0.01)
     problem.call_extra_func("set_lambda_2", 0.01)
 

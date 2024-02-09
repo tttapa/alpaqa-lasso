@@ -32,7 +32,7 @@ dependencies = ["alpaqa==1.0.0a17.dev0"] # TODO: pin version once alpaqa is rele
 "Bug Tracker" = "https://github.com/tttapa/alpaqa-lasso/issues"
 
 [build-system]
-requires = ["py-build-cmake~=0.2.0a11"]
+requires = ["py-build-cmake~=0.2.0a12"]
 build-backend = "py_build_cmake.build"
 
 [tool.py-build-cmake.module]
