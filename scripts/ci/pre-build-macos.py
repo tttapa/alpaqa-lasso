@@ -12,6 +12,7 @@ if archflags:
     archs = tuple(sorted(re.findall(r"-arch +(\S+)", archflags)))
 print("ARCHFLAGS:", archs)
 print("PLATFORM: ", platform.machine())
+print("MACOSX_DEPLOYMENT_TARGET:", os.getenv("MACOSX_DEPLOYMENT_TARGET"))
 
 can_run = platform.machine() in archs
 conan_arch = {
