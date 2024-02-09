@@ -258,8 +258,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.ccache.outputs.ccache-dir }}
-        key: ${{ runner.os }}-python-${{ matrix.host }}-ccache-${{ github.run_id }}
-        restore-keys: ${{ runner.os }}-python-${{ matrix.host }}-ccache
+        key: ${{ runner.os }}-cibw-${{ matrix.host }}-ccache-${{ github.run_id }}
+        restore-keys: ${{ runner.os }}-cibw-${{ matrix.host }}-ccache
         save-always: true
     # Install OpenMP
     - name: Install OpenMP
@@ -276,8 +276,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ steps.conan.outputs.conan-home }}
-        key: ${{ runner.os }}-python-${{ matrix.host }}-conan-${{ github.run_id }}
-        restore-keys: ${{ runner.os }}-python-${{ matrix.host }}-conan
+        key: ${{ runner.os }}-cibw-${{ matrix.host }}-conan-${{ github.run_id }}
+        restore-keys: ${{ runner.os }}-cibw-${{ matrix.host }}-conan
         save-always: true
     - name: Conan detect
       run: |
