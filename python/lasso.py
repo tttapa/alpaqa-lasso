@@ -1,9 +1,8 @@
 # %%
 
 import alpaqa
+import alpaqa.problems.lasso
 import numpy as np
-import platform
-import os
 from pprint import pprint
 
 # %%
@@ -12,7 +11,7 @@ rng = np.random.default_rng(seed=12345)
 
 # Number of observations, number of features, number of targets, number of batches
 m, n, p, q = 16, 32, 2, 1
-# m, n, p, q = 2048, 4096, 1, 50
+m, n, p, q = 2048, 4096, 1, 50
 sparsity = 0.1
 
 # Random data matrix A
@@ -28,16 +27,12 @@ b = Ax_exact + 0.05 * rng.standard_normal((m, p, q))
 x0 = rng.uniform(-10, 10, (n, p, q)).ravel(order="F")
 
 # %%
-path = os.path.dirname(__file__)
-ext = ".dll" if platform.system() == "Windows" else ".so"
-problem_path = os.path.join(path, "../build/Release/lasso" + ext)
-problem = alpaqa.DLProblem(
-    problem_path,
+problem = alpaqa.problems.lasso.load(
     A=np.asfortranarray(A),
     b=np.asfortranarray(b),
     lambda_1=λ,
     lambda_2=0,
-    cuda=True,
+    cuda=False,
 )
 # You can change the regularization after initialization
 if False:

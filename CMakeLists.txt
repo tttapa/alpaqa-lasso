@@ -36,6 +36,7 @@ alpaqa_add_dl_problem_module("lasso" LINK_ALPAQA FILES
     "src/openmp/hess-L-prod.cpp"
     "src/openmp/prox-grad-step.cpp"
 )
+set_property(TARGET lasso PROPERTY OUTPUT_NAME alpaqa-lasso)
 target_link_libraries(lasso PRIVATE warnings)
 target_link_libraries(lasso PRIVATE OpenMP::OpenMP_CXX)
 target_include_directories(lasso PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
@@ -63,3 +64,14 @@ if (WITH_CUDA)
     endif()
     target_compile_definitions(lasso PRIVATE ACL_WITH_CUDA)
 endif()
+
+include(GNUInstallDirs)
+# Install the Python module (py-build-cmake)
+install(TARGETS lasso
+        EXCLUDE_FROM_ALL
+        COMPONENT python_modules
+        DESTINATION ${PY_BUILD_CMAKE_MODULE_NAME}/problems/lasso)
+# Standard installation
+install(TARGETS lasso
+        COMPONENT lib
+        DESTINATION ${CMAKE_INSTALL_LIBDIR})

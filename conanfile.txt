@@ -1,0 +1,8 @@
+[requires]
+alpaqa/1.0.0-alpha.17
+pybind11/2.11.1
+[generators]
+CMakeDeps
+CMakeToolchain
+[layout]
+cmake_layout
