@@ -127,7 +127,9 @@ jobs:
     # Tools
     - name: Install tools
       run: |
-        brew install ccache && ccache --version
+        brew install ccache ninja
+        ccache --version
+        ninja --version
     # Ccache
     - name: Prepare ccache directory
       id: ccache
@@ -149,7 +151,7 @@ jobs:
         --branch new-dl-api --single-branch --depth=1
     - name: Install Eigen
       run: >
-        ./scripts/install-eigen.sh eigen
+        FC="" ./scripts/install-eigen.sh "$PWD/eigen" RelWithDebInfo 3.4.0
       working-directory: alpaqa
     # Build alpaqa Python interface
     - name: alpaqa config
