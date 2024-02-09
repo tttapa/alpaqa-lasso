@@ -54,7 +54,7 @@ source_path = "."
 args = ["-Wdev"]
 preset = "conan-default"
 config = "Release"
-build_args = ["-j", "--verbose"]
+build_args = ["-j"]
 install_components = ["python_modules"]
 [tool.py-build-cmake.cmake.options]
 "WITH_PYTHON:BOOL" = "On"
