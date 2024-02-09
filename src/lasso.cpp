@@ -89,13 +89,12 @@ auto create_problem(const py_param_t &opts) {
 #endif
 
 auto create_problem(alpaqa_register_arg_t user_data) {
-    using arg_t = alpaqa_register_arg_t;
-    if (user_data.type == arg_t::alpaqa_register_arg_strings) {
+    if (user_data.type == alpaqa_register_arg_strings) {
         const auto *opts = reinterpret_cast<str_param_t *>(user_data.data);
         return create_problem(*opts);
     }
 #if WITH_PYTHON
-    else if (user_data.type == arg_t::alpaqa_register_arg_py_args) {
+    else if (user_data.type == alpaqa_register_arg_py_args) {
         const auto *opts = reinterpret_cast<py_param_t *>(user_data.data);
         return create_problem(*opts);
     }
