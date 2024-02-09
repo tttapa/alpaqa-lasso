@@ -160,6 +160,8 @@ jobs:
         [cmake.options]
         "ALPAQA_WITH_CASADI:BOOL" = "Off"
         "CMAKE_FIND_ROOT_PATH" = "$PWD/eigen"
+        [mac.cmake]
+        config = "Release"
         EOF
       working-directory: alpaqa
         # Build
