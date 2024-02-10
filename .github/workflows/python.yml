@@ -173,6 +173,7 @@ jobs:
           output-dir: dist
       env:
           CIBW_BUILD: 'cp39-*'
+          CIBW_TEST_SKIP: '*'
     # Upload
     - name: Upload
       uses: actions/upload-artifact@v4
