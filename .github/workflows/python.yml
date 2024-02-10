@@ -268,11 +268,11 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
-    # Install OpenMP
-    - name: Install OpenMP
-      run: |
-        curl -O https://mac.r-project.org/openmp/openmp-16.0.4-darwin20-Release.tar.gz
-        sudo tar fvxz openmp-16.0.4-darwin20-Release.tar.gz -C /
+    # Install Python
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
     # Download
     - name: Download alpaqa
       uses: actions/download-artifact@v4
@@ -286,9 +286,9 @@ jobs:
         path: dist
     # Install
     - name: Install
-      run: python3.12 -m pip install alpaqa-lasso==1.0.0a17.dev0 matplotlib -f ./dist
+      run: python3.9 -m pip install alpaqa-lasso==1.0.0a17.dev0 matplotlib -f ./dist
     # Run
     - name: Run
-      run: python3.12 python/lasso.py
+      run: python3.9 python/lasso.py
       env:
         MPLBACKEND: SVG
