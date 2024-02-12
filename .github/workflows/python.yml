@@ -172,8 +172,9 @@ jobs:
           package-dir: alpaqa
           output-dir: dist
       env:
-          CIBW_BUILD: 'cp39-*'
+          CIBW_BUILD: 'cp39-*' # 'cp38-* cp39-* cp310-* cp311-* cp312-*'
           CIBW_TEST_SKIP: '*'
+          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.15
     # Upload
     - name: Upload
       uses: actions/upload-artifact@v4
@@ -249,7 +250,8 @@ jobs:
         package-dir: .
         output-dir: dist
       env:
-        CIBW_BUILD: 'cp39-*'
+        CIBW_BUILD: 'cp39-*' # 'cp38-* cp39-* cp310-* cp311-* cp312-*'
+        CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.15
     # Upload
     - name: Upload
       uses: actions/upload-artifact@v4
