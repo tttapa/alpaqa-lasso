@@ -44,15 +44,19 @@ class Problem {
     virtual void eval_hess_L_prod(const real_t *x_, const real_t *y_,
                                   real_t scale, const real_t *v_,
                                   real_t *Hv_) const = 0;
+    /// Hessian of the Lagrangian.
+    virtual void eval_hess_L(const real_t *, const real_t *, real_t,
+                             real_t *) const;
     /// Proximal gradient step.
     virtual real_t eval_prox_grad_step(real_t γ, const real_t *x_,
                                        const real_t *grad_ψ_, real_t *x̂_,
                                        real_t *p_) const = 0;
     /// Active indices of the Jacobian of the proximal mapping.
-    virtual index_t eval_inactive_indices_res_lna(real_t γ, const real_t *x_,
-                                                  const real_t *grad_ψ_,
-                                                  index_t *J_) const = 0;
+    virtual index_t eval_inactive_indices_res_lna(real_t, const real_t *,
+                                                  const real_t *,
+                                                  index_t *) const;
     virtual bool provides_eval_inactive_indices_res_lna() const { return true; }
+    virtual bool provides_eval_hess_L() const { return true; }
     /// Get the number of (real) variables.
     virtual length_t get_n() const { return n * p * q; }
 

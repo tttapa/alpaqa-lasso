@@ -17,6 +17,9 @@ class OMPProblem : public Problem {
     /// Hessian-vector product of the Lagrangian.
     void eval_hess_L_prod(const real_t *x_, const real_t *y_, real_t scale,
                           const real_t *v_, real_t *Hv_) const override;
+    /// Hessian of the Lagrangian.
+    void eval_hess_L(const real_t *x_, const real_t *y_, real_t scale,
+                     real_t *H_) const override;
     /// Proximal gradient step.
     real_t eval_prox_grad_step(real_t γ, const real_t *x_,
                                const real_t *grad_ψ_, real_t *x̂_,

@@ -25,6 +25,7 @@ class ComplexOMPProblem : public Problem {
     index_t eval_inactive_indices_res_lna(real_t γ, const real_t *x_,
                                           const real_t *grad_ψ_,
                                           index_t *J_) const override;
+    bool provides_eval_hess_L() const override { return false; }
     bool provides_eval_inactive_indices_res_lna() const override {
         return false;
     }

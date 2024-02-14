@@ -22,6 +22,8 @@ void Problem::config_funcs() {
     if (provides_eval_inactive_indices_res_lna())
         funcs.eval_inactive_indices_res_lna =
             member_caller<&P::eval_inactive_indices_res_lna>();
+    if (provides_eval_hess_L())
+        funcs.eval_hess_L = member_caller<&P::eval_hess_L>();
     funcs.eval_g           = member_caller<&P::eval_g>();
     funcs.eval_grad_g_prod = member_caller<&P::eval_grad_g_prod>();
     funcs.eval_jac_g       = member_caller<&P::eval_jac_g>();
@@ -54,5 +56,16 @@ py::object Problem::set_λ_2(py::args args, py::kwargs kwargs) {
     return py::cast(std::exchange(λ_2, py::cast<real_t>(args[0])));
 }
 #endif
+
+void Problem::eval_hess_L(const real_t *, const real_t *, real_t,
+                          real_t *) const {
+    throw std::logic_error("eval_hess_L not supported");
+}
+
+index_t Problem::eval_inactive_indices_res_lna(real_t, const real_t *,
+                                               const real_t *,
+                                               index_t *) const {
+    throw std::logic_error("eval_inactive_indices_res_lna not supported");
+}
 
 } // namespace acl

@@ -33,6 +33,7 @@ alpaqa_add_dl_problem_module("lasso" LINK_ALPAQA FILES
     "src/openmp/f.cpp"
     "src/openmp/grad-f.cpp"
     "src/openmp/f-grad-f.cpp"
+    "src/openmp/hess-L.cpp"
     "src/openmp/hess-L-prod.cpp"
     "src/openmp/prox-grad-step.cpp"
     "src/complex-openmp/complex-omp-problem.cpp"
