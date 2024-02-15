@@ -10,10 +10,12 @@
 namespace acl {
 
 void Problem::config_funcs() {
+    name    = get_name();
     using P = Problem;
     using alpaqa::member_caller;
     funcs.n                   = get_n(); // number of unknowns
     funcs.m                   = 0;
+    funcs.name                = name.c_str();
     funcs.eval_grad_f         = member_caller<&P::eval_grad_f>();
     funcs.eval_hess_L_prod    = member_caller<&P::eval_hess_L_prod>();
     funcs.eval_f              = member_caller<&P::eval_f>();

@@ -25,6 +25,7 @@ class Problem {
 
   protected:
     fs::path data_file; ///< File we loaded the data from (if any)
+    std::string name;   ///< Name/brief description of the problem
     length_t m;         ///< Number of observations (samples)
     length_t n;         ///< Number of features
     length_t p;         ///< Number of components of each observation (targets)
