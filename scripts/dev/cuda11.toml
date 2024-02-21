@@ -1,0 +1,5 @@
+[cmake.options]
+WITH_CUDA = "ON"
+CMAKE_CUDA_COMPILER = "/usr/local/cuda-11/bin/nvcc"
+CMAKE_CUDA_STANDARD = "17"
+CMAKE_CUDA_ARCHITECTURES = "61"

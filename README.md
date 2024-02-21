@@ -33,8 +33,34 @@ latest [GitHub Actions run](https://github.com/tttapa/alpaqa-lasso/actions),
 unzip them, and install the appropriate Wheel files into your Python virtual
 environment using `pip install filename.whl`.
 
-**TODO:** Instructions for building from source, see
-[.github/workflows/python.yml](https://github.com/tttapa/alpaqa-lasso/blob/main/.github/workflows/python.yml) for now.
+## Build from source
+
+```sh
+# Download alpaqa
+git clone https://github.com/kul-optec/alpaqa --branch new-dl-api
+# Install the dependencies for alpaqa using Conan
+conan install ./alpaqa --build=missing \
+    -c tools.cmake.cmaketoolchain:generator="Ninja Multi-Config" \
+    -s build_type=Release
+# Build and install the alpaqa Python package
+python3 -m pip install ./alpaqa -v -C--local="$PWD/scripts/dev/alpaqa.toml"
+# Add alpaqa itself to your Conan cache
+conan export alpaqa
+# Install the dependencies for alpaqa-lasso using Conan
+conan install . --build=missing \
+    -c tools.cmake.cmaketoolchain:generator="Ninja Multi-Config" \
+    -s build_type=Release
+# Build and install the alpaqa-lasso Python package
+python3 -m pip install . -v
+```
+
+To enable CUDA support, edit the appropriate `scripts/dev/cudaXX.toml` file
+and then use them during installation. For example:
+
+```sh
+# Build and install the alpaqa-lasso Python package
+python3 -m pip install . -v -C--local="$PWD/scripts/dev/cuda11.toml"
+```
 
 ## Examples
 

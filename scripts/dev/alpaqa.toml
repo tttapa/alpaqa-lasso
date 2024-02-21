@@ -1,0 +1,11 @@
+[cmake]
+minimum_version = "3.24"
+preset = "conan-default"
+[linux.cmake]
+config = "Release"
+generator = "Ninja Multi-Config"
+[mac.cmake]
+config = "Release"
+generator = "Ninja Multi-Config"
+[windows.cmake]
+config = "Release"
