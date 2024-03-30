@@ -37,7 +37,7 @@ environment using `pip install filename.whl`.
 
 ```sh
 # Download alpaqa
-git clone https://github.com/kul-optec/alpaqa --branch=1.0.0a18
+git clone https://github.com/kul-optec/alpaqa --branch=develop
 # Install the dependencies for alpaqa using Conan
 conan install ./alpaqa --build=missing \
     -c tools.cmake.cmaketoolchain:generator="Ninja Multi-Config" \

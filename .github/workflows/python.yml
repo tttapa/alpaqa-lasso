@@ -88,7 +88,7 @@ jobs:
 #     - name: Download alpaqa
 #       run: >
 #         git clone https://github.com/kul-optec/alpaqa
-#         --branch=1.0.0a18 --single-branch --depth=1
+#         --branch=develop --single-branch --depth=1
 #     - name: Conan create alpaqa
 #       run: >
 #         conan create alpaqa
@@ -169,7 +169,7 @@ jobs:
     - name: Download alpaqa
       run: >
         git clone https://github.com/kul-optec/alpaqa
-        --branch=1.0.0a18 --single-branch --depth=1
+        --branch=develop --single-branch --depth=1
     # Build
     - name: Build Wheels
       uses: pypa/cibuildwheel@ce3fb7832089eb3e723a0a99cab7f3eaccf074fd
@@ -210,7 +210,7 @@ jobs:
         path: dist
     # Install
     - name: Install
-      run: python3.9 -m pip install alpaqa-lasso==1.0.0a18 matplotlib -f ./dist
+      run: python3.9 -m pip install alpaqa-lasso==1.0.0a19.dev0 matplotlib -f ./dist
     # Run
     - name: Run
       run: python3.9 python/lasso.py

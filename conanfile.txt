@@ -1,5 +1,5 @@
 [requires]
-alpaqa/1.0.0-alpha.18
+alpaqa/1.0.0-alpha.19
 pybind11/2.11.1
 [generators]
 CMakeDeps
