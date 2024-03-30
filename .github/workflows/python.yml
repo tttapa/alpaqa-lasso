@@ -88,7 +88,7 @@ jobs:
 #     - name: Download alpaqa
 #       run: >
 #         git clone https://github.com/kul-optec/alpaqa
-#         --branch new-dl-api --single-branch --depth=1
+#         --branch=1.0.0a18 --single-branch --depth=1
 #     - name: Conan create alpaqa
 #       run: >
 #         conan create alpaqa
@@ -108,79 +108,6 @@ jobs:
 #       with:
 #         name: alpaqa-lasso-python-${{ matrix.host }}
 #         path: dist/*.whl
-
-  build-alpaqa-macos:
-    strategy:
-      matrix:
-        host: [macos]
-    runs-on: macos-13
-    env:
-      CMAKE_C_COMPILER_LAUNCHER: ccache
-      CMAKE_CXX_COMPILER_LAUNCHER: ccache
-      DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
-      FC: NOTFOUND
-    steps:
-    # Git clone
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    # Tools
-    - name: Install tools
-      run: |
-        brew install ccache ninja
-        ccache --version
-        ninja --version
-    # Ccache
-    - name: Prepare ccache directory
-      id: ccache
-      run: |
-        echo "CCACHE_DIR=${{ runner.temp }}/.ccache" >> "$GITHUB_ENV"
-        echo "ccache-dir=${{ runner.temp }}/.ccache" >> "$GITHUB_OUTPUT"
-        mkdir -p "${{ runner.temp }}/.ccache"
-    - name: Cache ccache
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.ccache.outputs.ccache-dir }}
-        key: ${{ runner.os }}-python-${{ matrix.host }}-ccache-${{ github.run_id }}
-        restore-keys: ${{ runner.os }}-python-${{ matrix.host }}-ccache
-        save-always: true
-    # Dependencies
-    - name: Download alpaqa
-      run: >
-        git clone https://github.com/kul-optec/alpaqa
-        --branch new-dl-api --single-branch --depth=1
-    - name: Install Eigen
-      run: >
-        FC="" ./scripts/install-eigen.sh "$PWD/eigen" RelWithDebInfo 3.4.0
-      working-directory: alpaqa
-    # Build alpaqa Python interface
-    - name: alpaqa config
-      run: |
-        cat > py-build-cmake.local.toml << EOF
-        [cmake.options]
-        "ALPAQA_WITH_CASADI:BOOL" = "Off"
-        "ALPAQA_WITH_OCP:BOOL" = "Off"
-        "CMAKE_FIND_ROOT_PATH" = "$PWD/eigen"
-        [mac.cmake]
-        config = "Release"
-        EOF
-      working-directory: alpaqa
-        # Build
-    - name: Build Wheels
-      uses: pypa/cibuildwheel@ce3fb7832089eb3e723a0a99cab7f3eaccf074fd
-      with:
-          package-dir: alpaqa
-          output-dir: dist
-      env:
-          CIBW_BUILD: 'cp39-* cp310-* cp311-* cp312-*'
-          CIBW_TEST_SKIP: '*'
-          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.15
-    # Upload
-    - name: Upload
-      uses: actions/upload-artifact@v4
-      with:
-        name: alpaqa-python-${{ matrix.host }}
-        path: dist/*.whl
 
   build-alpaqa-lasso-macos:
     strategy:
@@ -242,7 +169,7 @@ jobs:
     - name: Download alpaqa
       run: >
         git clone https://github.com/kul-optec/alpaqa
-        --branch new-dl-api --single-branch --depth=1
+        --branch=1.0.0a18 --single-branch --depth=1
     # Build
     - name: Build Wheels
       uses: pypa/cibuildwheel@ce3fb7832089eb3e723a0a99cab7f3eaccf074fd
@@ -260,7 +187,7 @@ jobs:
         path: dist/*.whl
 
   test-macos:
-    needs: [build-alpaqa-macos, build-alpaqa-lasso-macos]
+    needs: [build-alpaqa-lasso-macos]
     strategy:
       matrix:
         host: [macos]
@@ -276,11 +203,6 @@ jobs:
       with:
         python-version: '3.9'
     # Download
-    - name: Download alpaqa
-      uses: actions/download-artifact@v4
-      with:
-        name: alpaqa-python-${{ matrix.host }}
-        path: dist
     - name: Download alpaqa-lasso
       uses: actions/download-artifact@v4
       with:
@@ -288,7 +210,7 @@ jobs:
         path: dist
     # Install
     - name: Install
-      run: python3.9 -m pip install alpaqa-lasso==1.0.0a17.dev0 matplotlib -f ./dist
+      run: python3.9 -m pip install alpaqa-lasso==1.0.0a18 matplotlib -f ./dist
     # Run
     - name: Run
       run: python3.9 python/lasso.py

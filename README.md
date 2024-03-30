@@ -37,11 +37,11 @@ environment using `pip install filename.whl`.
 
 ```sh
 # Download alpaqa
-git clone https://github.com/kul-optec/alpaqa --branch new-dl-api
+git clone https://github.com/kul-optec/alpaqa --branch=1.0.0a18
 # Install the dependencies for alpaqa using Conan
 conan install ./alpaqa --build=missing \
     -c tools.cmake.cmaketoolchain:generator="Ninja Multi-Config" \
-    -s build_type=Release
+    -s build_type=Release -o with_python=True
 # Build and install the alpaqa Python package
 python3 -m pip install ./alpaqa -v -C--local="$PWD/scripts/dev/alpaqa.toml"
 # Add alpaqa itself to your Conan cache

@@ -5,3 +5,4 @@ dist
 py-build-cmake.local.toml
 CMakeUserPresets.json
 /alpaqa
+.venv*

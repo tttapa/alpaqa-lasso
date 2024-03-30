@@ -23,8 +23,8 @@ classifiers = [
     "Typing :: Typed",
 ]
 description = "Loadable lasso problem for the alpaqa solver"
-version = "1.0.0a17.dev0"
-dependencies = ["alpaqa==1.0.0a17.dev0"] # TODO: pin version once alpaqa is released
+version = "1.0.0a18"
+dependencies = ["alpaqa==1.0.0a18"]
 
 [project.urls]
 "Documentation" = "https://kul-optec.github.io/alpaqa"
