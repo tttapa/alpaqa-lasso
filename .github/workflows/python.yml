@@ -169,7 +169,7 @@ jobs:
     - name: Download alpaqa
       run: >
         git clone https://github.com/kul-optec/alpaqa
-        --branch=develop --single-branch --depth=1
+        --branch=1.0.0a19 --single-branch --depth=1
     # Build
     - name: Build Wheels
       uses: pypa/cibuildwheel@ce3fb7832089eb3e723a0a99cab7f3eaccf074fd
