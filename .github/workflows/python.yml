@@ -191,6 +191,7 @@ jobs:
     strategy:
       matrix:
         host: [macos]
+        python-version: ['3.9', '3.12']
     runs-on: macos-13
     steps:
     # Git clone
@@ -201,7 +202,7 @@ jobs:
     - name: Install Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '${{ matrix.python-version}}'
     # Download
     - name: Download alpaqa-lasso
       uses: actions/download-artifact@v4
@@ -210,9 +211,9 @@ jobs:
         path: dist
     # Install
     - name: Install
-      run: python3.9 -m pip install alpaqa-lasso==1.0.0a19 matplotlib -f ./dist
+      run: python${{ matrix.python-version}} -m pip install alpaqa-lasso==1.0.0a19 matplotlib -f ./dist
     # Run
     - name: Run
-      run: python3.9 python/lasso.py
+      run: python${{ matrix.python-version}} python/lasso.py
       env:
         MPLBACKEND: SVG
