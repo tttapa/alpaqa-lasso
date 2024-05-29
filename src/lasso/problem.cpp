@@ -13,22 +13,25 @@ void Problem::config_funcs() {
     name    = get_name();
     using P = Problem;
     using alpaqa::member_caller;
-    funcs.n                   = get_n(); // number of unknowns
-    funcs.m                   = 0;
-    funcs.name                = name.c_str();
-    funcs.eval_grad_f         = member_caller<&P::eval_grad_f>();
-    funcs.eval_hess_L_prod    = member_caller<&P::eval_hess_L_prod>();
-    funcs.eval_f              = member_caller<&P::eval_f>();
-    funcs.eval_f_grad_f       = member_caller<&P::eval_f_grad_f>();
-    funcs.eval_prox_grad_step = member_caller<&P::eval_prox_grad_step>();
+    funcs.n                       = get_n(); // number of unknowns
+    funcs.m                       = 0;
+    funcs.name                    = name.c_str();
+    funcs.eval_objective_gradient = member_caller<&P::eval_grad_f>();
+    funcs.eval_lagrangian_hessian_product =
+        member_caller<&P::eval_hess_L_prod>();
+    funcs.eval_objective              = member_caller<&P::eval_f>();
+    funcs.eval_objective_and_gradient = member_caller<&P::eval_f_grad_f>();
+    funcs.eval_proximal_gradient_step =
+        member_caller<&P::eval_prox_grad_step>();
     if (provides_eval_inactive_indices_res_lna())
         funcs.eval_inactive_indices_res_lna =
             member_caller<&P::eval_inactive_indices_res_lna>();
     if (provides_eval_hess_L())
-        funcs.eval_hess_L = member_caller<&P::eval_hess_L>();
-    funcs.eval_g           = member_caller<&P::eval_g>();
-    funcs.eval_grad_g_prod = member_caller<&P::eval_grad_g_prod>();
-    funcs.eval_jac_g       = member_caller<&P::eval_jac_g>();
+        funcs.eval_lagrangian_hessian = member_caller<&P::eval_hess_L>();
+    funcs.eval_constraints = member_caller<&P::eval_g>();
+    funcs.eval_constraints_gradient_product =
+        member_caller<&P::eval_grad_g_prod>();
+    funcs.eval_constraints_jacobian = member_caller<&P::eval_jac_g>();
 }
 
 std::string Problem::get_name() const {

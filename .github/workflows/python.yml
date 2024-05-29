@@ -211,7 +211,7 @@ jobs:
         path: dist
     # Install
     - name: Install
-      run: python${{ matrix.python-version}} -m pip install alpaqa-lasso==1.0.0a19 matplotlib -f ./dist
+      run: python${{ matrix.python-version}} -m pip install alpaqa-lasso==1.0.0a20.dev0 matplotlib -f ./dist
     # Run
     - name: Run
       run: python${{ matrix.python-version}} python/lasso.py
