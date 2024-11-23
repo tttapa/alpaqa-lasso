@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22...3.28)
-project(alpaqa-complex-lasso LANGUAGES CXX)
+project(alpaqa-lasso LANGUAGES CXX)
 include(CMakeDependentOption)
 
 option(WITH_PYTHON "Support accepting Python arguments directly" Off)
