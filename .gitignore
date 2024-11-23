@@ -6,3 +6,4 @@ py-build-cmake.local.toml
 CMakeUserPresets.json
 /alpaqa
 .venv*
+/r[0-9][0-9][0-9]hs
