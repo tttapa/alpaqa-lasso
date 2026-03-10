@@ -44,6 +44,8 @@ python3 -m pip install ./alpaqa -v
 conan export ./alpaqa
 # Build and install the alpaqa-lasso Python package
 python3 -m pip install . -v
+# Run the examples
+python3 python/lasso.py
 ```
 
 To enable CUDA support, edit the appropriate `scripts/dev/cudaXX.toml` file
