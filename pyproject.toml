@@ -47,6 +47,7 @@ include = [
     "CMakeLists.txt",
     "src",
     "cmake",
+    "conanfile.py",
 ]
 exclude = []
 
