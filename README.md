@@ -37,19 +37,11 @@ environment using `pip install filename.whl`.
 
 ```sh
 # Download alpaqa
-git clone https://github.com/kul-optec/alpaqa --branch=develop
-# Install the dependencies for alpaqa using Conan
-conan install ./alpaqa --build=missing \
-    -c tools.cmake.cmaketoolchain:generator="Ninja Multi-Config" \
-    -s build_type=Release -o with_python=True
+git clone https://github.com/kul-optec/alpaqa --branch=1.1.0a1
 # Build and install the alpaqa Python package
-python3 -m pip install ./alpaqa -v -C--local="$PWD/scripts/dev/alpaqa.toml"
+python3 -m pip install ./alpaqa -v
 # Add alpaqa itself to your Conan cache
-conan export alpaqa
-# Install the dependencies for alpaqa-lasso using Conan
-conan install . --build=missing \
-    -c tools.cmake.cmaketoolchain:generator="Ninja Multi-Config" \
-    -s build_type=Release
+conan export ./alpaqa
 # Build and install the alpaqa-lasso Python package
 python3 -m pip install . -v
 ```
