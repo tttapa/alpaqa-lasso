@@ -2,14 +2,16 @@
 
 #include <problem.hpp>
 
-#include <alpaqa/util/lifetime.hpp>
+#include <guanaqo/lifetime.hpp>
+
+#include <cassert>
 
 namespace acl {
 
 /// Convert complex matrix to real matrix.
 inline auto c2r(crcmat in) {
     return cmmat{
-        alpaqa::util::start_lifetime_as_array<real_t>(
+        guanaqo::start_lifetime_as_array<real_t>(
             in.data(), static_cast<size_t>(in.size() * 2)),
         in.rows() * 2,
         in.cols(),
@@ -18,7 +20,7 @@ inline auto c2r(crcmat in) {
 /// Convert complex matrix to real matrix.
 inline auto c2r(rcmat in) {
     return mmat{
-        alpaqa::util::start_lifetime_as_array<real_t>(
+        guanaqo::start_lifetime_as_array<real_t>(
             in.data(), static_cast<size_t>(in.size() * 2)),
         in.rows() * 2,
         in.cols(),
@@ -28,7 +30,7 @@ inline auto c2r(rcmat in) {
 inline auto r2c(crmat in) {
     assert(in.size() % 2 == 0);
     return cmcmat{
-        alpaqa::util::start_lifetime_as_array<cplx_t>(
+        guanaqo::start_lifetime_as_array<cplx_t>(
             in.data(), static_cast<size_t>(in.size() / 2)),
         in.rows() / 2,
         in.cols(),
@@ -38,7 +40,7 @@ inline auto r2c(crmat in) {
 inline auto r2c(rmat in) {
     assert(in.size() % 2 == 0);
     return mcmat{
-        alpaqa::util::start_lifetime_as_array<cplx_t>(
+        guanaqo::start_lifetime_as_array<cplx_t>(
             in.data(), static_cast<size_t>(in.size() / 2)),
         in.rows() / 2,
         in.cols(),

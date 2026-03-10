@@ -1,6 +1,6 @@
 [requires]
-alpaqa/1.0.0-alpha.19
-pybind11/2.11.1
+alpaqa/1.1.0-alpha.1
+pybind11/2.13.6
 [generators]
 CMakeDeps
 CMakeToolchain

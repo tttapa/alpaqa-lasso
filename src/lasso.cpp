@@ -77,7 +77,7 @@ auto create_problem(const py_param_t &opts) {
 #endif
     else {
         auto np     = py::module_::import("numpy");
-        auto cfloat = np.attr("cfloat");
+        auto cfloat = np.attr("complex128");
         if (kwargs.contains("A") && kwargs["A"].attr("dtype").equal(cfloat))
             problem = std::make_unique<ComplexOMPProblem>();
         else

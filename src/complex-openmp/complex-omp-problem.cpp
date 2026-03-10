@@ -1,7 +1,8 @@
 #include <complex-openmp/complex-convert.hpp>
 #include <complex-openmp/complex-omp-problem.hpp>
 
-#include <alpaqa/util/io/csv.hpp>
+#include <guanaqo/eigen/span.hpp>
+#include <guanaqo/io/csv.hpp>
 #include <fstream>
 
 #if WITH_PYTHON
@@ -14,13 +15,12 @@ void ComplexOMPProblem::load_data(fs::path csv_file) {
     data_file = std::move(csv_file);
     std::ifstream ifile{data_file};
     if (!ifile)
-        throw std::runtime_error("Unable to open file '" + data_file.string() +
-                                 "'");
+        throw std::runtime_error("Unable to open file '" + data_file.string() + "'");
     // Load dimensions (#observations, #features, #targets, #terms)
-    auto dims = alpaqa::csv::read_row_std_vector<length_t>(ifile);
+    auto dims = guanaqo::io::csv_read_row_std_vector<length_t>(ifile);
     if (dims.size() < 2 || dims.size() > 4)
-        throw std::runtime_error("Invalid problem dimensions in data file \'" +
-                                 data_file.string() + '\'');
+        throw std::runtime_error("Invalid problem dimensions in data file \'" + data_file.string() +
+                                 '\'');
     m = dims[0];
     n = dims[1];
     p = dims.size() > 2 ? dims[2] : 1;
@@ -29,10 +29,10 @@ void ComplexOMPProblem::load_data(fs::path csv_file) {
     storage.A.resize(m, n * q);
     // Read the measurements
     for (length_t i = 0; i < p * q; ++i)
-        alpaqa::csv::read_row(ifile, c2r(rcmat{storage.b.col(i)}));
+        guanaqo::io::csv_read_row(ifile, guanaqo::as_span(c2r(rcmat{storage.b.col(i)}).reshaped()));
     // Read the data
     for (length_t i = 0; i < n * q; ++i)
-        alpaqa::csv::read_row(ifile, c2r(rcmat{storage.A.col(i)}));
+        guanaqo::io::csv_read_row(ifile, guanaqo::as_span(c2r(rcmat{storage.A.col(i)}).reshaped()));
     data.A.emplace(crcmat{storage.A});
     data.b.emplace(crcmat{storage.b});
 }

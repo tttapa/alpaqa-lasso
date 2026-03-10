@@ -17,14 +17,16 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: MacOS",
     "Typing :: Typed",
 ]
 description = "Loadable lasso problem for the alpaqa solver"
-version = "1.0.0a19"
-dependencies = ["alpaqa==1.0.0a19"]
+version = "1.1.0a1"
+dependencies = ["alpaqa==1.1.0a1"]
 
 [project.urls]
 "Documentation" = "https://kul-optec.github.io/alpaqa"
@@ -32,7 +34,7 @@ dependencies = ["alpaqa==1.0.0a19"]
 "Bug Tracker" = "https://github.com/tttapa/alpaqa-lasso/issues"
 
 [build-system]
-requires = ["py-build-cmake~=0.2.0a12"]
+requires = ["py-build-cmake~=0.6.0a2", "conan~=2.26.2"]
 build-backend = "py_build_cmake.build"
 
 [tool.py-build-cmake.module]
@@ -48,20 +50,17 @@ include = [
 ]
 exclude = []
 
-[tool.py-build-cmake.cmake]
+[tool.py-build-cmake.conan.cmake]
 minimum_version = "3.24"
 source_path = "."
 args = ["-Wdev"]
-preset = "conan-default"
-config = "Release"
-build_args = ["-j"]
 install_components = ["python_modules"]
-[tool.py-build-cmake.cmake.options]
+[tool.py-build-cmake.conan.cmake.options]
 "WITH_PYTHON:BOOL" = "On"
 
-[tool.py-build-cmake.linux.cmake]
+[tool.py-build-cmake.linux.conan.cmake]
 generator = "Ninja Multi-Config"
-[tool.py-build-cmake.mac.cmake]
+[tool.py-build-cmake.mac.conan.cmake]
 generator = "Ninja Multi-Config"
 
 [tool.py-build-cmake.editable]
@@ -73,7 +72,6 @@ environment = { PY_BUILD_CMAKE_VERBOSE="1" }
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "arm64"]
-before-build = ["pip install cmake conan==2.1.0 ninja", "python scripts/ci/pre-build-macos.py"]
 
 [tool.cibuildwheel.windows]
 archs = ["AMD64", "x86", "ARM64"]
