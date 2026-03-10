@@ -6,6 +6,10 @@ option(WITH_PYTHON "Support accepting Python arguments directly" Off)
 option(WITH_CUDA "GPU support" Off)
 cmake_dependent_option(WITH_CUDA_STATIC "Link the CUDA runtime statically" On "WITH_CUDA" Off)
 
+if (PROJECT_IS_TOP_LEVEL)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS On)
+endif()
+
 # Compiler warnings
 include(cmake/Warnings.cmake)
 add_warnings_target(warnings Off)
