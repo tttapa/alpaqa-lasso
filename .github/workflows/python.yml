@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     # Git clone
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
     # Install Python
@@ -136,7 +136,7 @@ jobs:
       FC: NOTFOUND
     steps:
     # Git clone
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
     # Tools
@@ -207,7 +207,7 @@ jobs:
     runs-on: macos-15-intel
     steps:
     # Git clone
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
     # Install Python
