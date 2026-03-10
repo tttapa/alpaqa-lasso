@@ -188,6 +188,11 @@ jobs:
         conan --version
         conan profile detect --force
     # Dependencies
+    - name: Download recipes
+      run: |
+        recipes="${{ github.workspace }}/tttapa-conan-recipes"
+        git clone https://github.com/tttapa/conan-recipes "$recipes"
+        conan remote add tttapa-conan-recipes "$recipes" --force
     - name: Download and export alpaqa
       run: |
         git clone https://github.com/kul-optec/alpaqa --branch=1.1.0a1 --single-branch --depth=1
