@@ -29,6 +29,9 @@ python_profile="$PWD/conan-python.cross.profile"
 profiles="$PWD/scripts/ci/conan-profiles/profiles"
 cat << EOF > "$python_profile"
 include($PWD/scripts/ci/options/alpaqa-python-linux.profile)
+[conf]
+&:tools.build:cxxflags+=["-g"]
+&:tools.build:cflags+=["-g"]
 [options]
 &:with_conan_python=True
 [replace_requires]
