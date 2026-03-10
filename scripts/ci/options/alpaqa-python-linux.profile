@@ -1,5 +1,5 @@
 [options]
-alpaqa/*:with_python=True
+alpaqa/*:with_python=False
 alpaqa/*:with_ipopt=True
 alpaqa/*:with_external_casadi=True
 alpaqa/*:with_qpalm=True

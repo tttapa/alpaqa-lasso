@@ -38,15 +38,6 @@ jobs:
           python-version: '3.12'
           cache-key: build-sdist
 
-      - name: Build Wheel package
-        run: ./scripts/ci/build-linux-native.sh . dist python
-      - name: Upload Wheel
-        uses: actions/upload-artifact@v4
-        with:
-          name: native-wheels
-          path: dist/*.whl
-          retention-days: 1
-
       - name: Create sdist
         run: python3 -m build -s
       - name: Upload sdist
