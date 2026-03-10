@@ -10,124 +10,147 @@ on:
     types: ['released', 'prereleased']
 
 jobs:
-#   build-linux:
-#     strategy:
-#       matrix:
-#         host: [ubuntu-22.04-skylake]
-#     runs-on: ubuntu-22.04
-#     env:
-#       CMAKE_C_COMPILER_LAUNCHER: ccache
-#       CMAKE_CXX_COMPILER_LAUNCHER: ccache
-#     steps:
-#     # Git clone
-#     - uses: actions/checkout@v4
-#       with:
-#         submodules: recursive
-#     # Tools
-#     - name: Install tools
-#       run: |
-#         sudo apt install -y ccache ninja-build python3-dev
-#     # Ccache
-#     - name: Prepare ccache directory
-#       id: ccache
-#       run: |
-#         echo "CCACHE_DIR=${{ runner.temp }}/.ccache" >> "$GITHUB_ENV"
-#         echo "ccache-dir=${{ runner.temp }}/.ccache" >> "$GITHUB_OUTPUT"
-#         mkdir -p "${{ runner.temp }}/.ccache"
-#     - name: Cache ccache
-#       uses: actions/cache@v4
-#       with:
-#         path: ${{ steps.ccache.outputs.ccache-dir }}
-#         key: ${{ runner.os }}-python-${{ matrix.host }}-ccache-${{ github.run_id }}
-#         restore-keys: ${{ runner.os }}-python-${{ matrix.host }}-ccache
-#         save-always: true
-#     # Conan
-#     - name: Install Conan
-#       id: conan
-#       run: |
-#         python3.10 -m pip install -U pip conan build
-#         echo "conan-home=$(conan config home)" >> "$GITHUB_OUTPUT"
-#     - name: Cache Conan
-#       uses: actions/cache@v4
-#       with:
-#         path: ${{ steps.conan.outputs.conan-home }}
-#         key: ${{ runner.os }}-python-${{ matrix.host }}-conan-${{ github.run_id }}
-#         restore-keys: ${{ runner.os }}-python-${{ matrix.host }}-conan
-#         save-always: true
-#     - name: Conan detect
-#       run: |
-#         conan --version
-#         conan profile detect --force
-#     - name: Conan config
-#       run: |
-#         cat > settings_user.yml << EOF
-#         os:
-#           Linux:
-#             glibc: [null, ANY]
-#         arch: [skylake]
-#         static-libcxx: [null, true, false]
-#         EOF
-#         conan config install settings_user.yml
-#         cat > ${{ matrix.host }}.profile << EOF
-#         include(default)
-#         [settings]
-#         arch=skylake
-#         static-libcxx=True
-#         build_type=Release
-#         [conf]
-#         tools.build.cross_building:can_run=True
-#         tools.build:cxxflags+=["-march=skylake", "-static-libstdc++"]
-#         tools.build:cflags+=["-march=skylake"]
-#         tools.build:sharedlinkflags+=["-static-libstdc++"]
-#         tools.build:exelinkflags+=["-static-libstdc++"]
-#         tools.cmake.cmaketoolchain:generator=Ninja Multi-Config
-#         tools.build:skip_test=True
-#         EOF
-#         conan config install ${{ matrix.host }}.profile -tf profiles
-#     # Dependencies
-#     - name: Download alpaqa
-#       run: >
-#         git clone https://github.com/kul-optec/alpaqa
-#         --branch=develop --single-branch --depth=1
-#     - name: Conan create alpaqa
-#       run: >
-#         conan create alpaqa
-#         -pr:h ${{ matrix.host }}.profile
-#         --build=missing
-#     - name: Conan install
-#       run: >
-#         conan install .
-#         -pr:h ${{ matrix.host }}.profile
-#         --build=missing
-#     # Build
-#     - name: Build
-#       run: python3.10 -m build -w
-#     # Upload
-#     - name: Upload
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: alpaqa-lasso-python-${{ matrix.host }}
-#         path: dist/*.whl
+  # First we build the wheels natively (build system == host system).
+  # This allows us to import the compiled modules, and automatically generate
+  # stub files for them. Those stub files are then included in the sdist
+  # (source distribution), to be later included in the cross-compiled packages
+  # as well (because we can't generate stubs while cross-compiling).
+  # By building the native wheels first, we can already start testing while the
+  # cross-compiled versions are being built.
+  build-sdist:
+    name: Build sdist
+    runs-on: ubuntu-24.04
+    outputs:
+      epoch: ${{ steps.get-epoch.outputs.epoch }}
+    steps:
+      - id: get-epoch
+        run: |
+          ts=$(date +%s)
+          echo "epoch=$ts" >> $GITHUB_OUTPUT
+          echo "SOURCE_DATE_EPOCH=$ts" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Conan
+        uses: ./.github/workflows/setup-conan
+        with:
+          python-version: '3.12'
+          cache-key: build-sdist
+
+      - name: Build Wheel package
+        run: ./scripts/ci/build-linux-native.sh . dist python
+      - name: Upload Wheel
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-wheels
+          path: dist/*.whl
+          retention-days: 1
+
+      - name: Create sdist
+        run: python3 -m build -s
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          retention-days: 1
+
+      - run: conan cache clean
+
+  # After the native build, we have the stub files, and we can start cross-
+  # compiling for all architectures.
+  build-linux:
+    name: Build (${{ matrix.host }})
+    needs: [build-sdist]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        host: [x86_64-bionic-linux-gnu]
+    steps:
+      - run: echo "SOURCE_DATE_EPOCH=${{ needs.build-sdist.outputs.epoch }}" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Conan and sccache
+        uses: ./.github/workflows/setup-conan
+        with:
+          python-version: '3.12'
+          cache-key: build-${{ matrix.host }}
+
+      - name: Download sdist
+        uses: actions/download-artifact@v4
+        with:
+          name: sdist
+          path: dist
+      - name: Extract sdist
+        run: mkdir sdist && tar xf dist/*.tar.gz -C sdist --strip-components 1
+
+      - name: Build Wheels
+        run: |
+          for v in 3.9 3.10 3.11 3.12 3.13 3.14; do
+            ./scripts/ci/build-linux-cross.sh $v ${{ matrix.host }} sdist dist
+          done
+
+      - name: Upload Wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.host }}
+          path: ./dist/*.whl
+
+      - run: conan cache clean
+
+  test-linux:
+    needs: [build-linux]
+    strategy:
+      matrix:
+        host: [x86_64-bionic-linux-gnu]
+        python-version: ['3.10', '3.12']
+    runs-on: ubuntu-24.04
+    steps:
+    # Git clone
+    - uses: actions/checkout@v7
+      with:
+        submodules: recursive
+    # Install Python
+    - name: Install Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '${{ matrix.python-version}}'
+    # Download
+    - name: Download alpaqa-lasso
+      uses: actions/download-artifact@v8
+      with:
+        name: wheels-${{ matrix.host }}
+        path: dist
+    # Install
+    - name: Install
+      run: python${{ matrix.python-version}} -m pip install alpaqa-lasso==1.1.0a1 matplotlib -f ./dist
+    # Run
+    - name: Run
+      run: python${{ matrix.python-version}} python/lasso.py
+      env:
+        MPLBACKEND: SVG
 
   build-alpaqa-lasso-macos:
     strategy:
       matrix:
         host: [macos]
-    runs-on: macos-13
+    runs-on: macos-15-intel
     env:
       CMAKE_C_COMPILER_LAUNCHER: ccache
       CMAKE_CXX_COMPILER_LAUNCHER: ccache
-      DEVELOPER_DIR: /Applications/Xcode_15.2.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       FC: NOTFOUND
     steps:
     # Git clone
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     # Tools
     - name: Install tools
-      run: |
-        brew install ccache && ccache --version
+      run: brew install ccache && ccache --version
     # Ccache
     - name: Prepare ccache directory
       id: ccache
@@ -136,40 +159,38 @@ jobs:
         echo "ccache-dir=${{ runner.temp }}/.ccache" >> "$GITHUB_OUTPUT"
         mkdir -p "${{ runner.temp }}/.ccache"
     - name: Cache ccache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ steps.ccache.outputs.ccache-dir }}
         key: ${{ runner.os }}-cibw-${{ matrix.host }}-ccache-${{ github.run_id }}
         restore-keys: ${{ runner.os }}-cibw-${{ matrix.host }}-ccache
-        save-always: true
     # Install OpenMP
     - name: Install OpenMP
       run: |
-        curl -O https://mac.r-project.org/openmp/openmp-16.0.4-darwin20-Release.tar.gz
-        sudo tar fvxz openmp-16.0.4-darwin20-Release.tar.gz -C /
+        curl -O https://mac.r-project.org/openmp/openmp-19.1.5-darwin20-Release.tar.gz
+        sudo tar fvxz openmp-19.1.5-darwin20-Release.tar.gz -C /
     # Conan
     - name: Install Conan
       id: conan
       run: |
-        python3.12 -m pip install -U pip conan build ninja
+        python3.12 -m pip install -U pip conan~=2.26.2
         echo "conan-home=$(conan config home)" >> "$GITHUB_OUTPUT"
     - name: Cache Conan
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ${{ steps.conan.outputs.conan-home }}
         key: ${{ runner.os }}-cibw-${{ matrix.host }}-conan-${{ github.run_id }}
         restore-keys: ${{ runner.os }}-cibw-${{ matrix.host }}-conan
-        save-always: true
     - name: Conan detect
       run: |
         conan --version
         conan profile detect --force
         conan config install scripts/ci/settings_user.yml
     # Dependencies
-    - name: Download alpaqa
-      run: >
-        git clone https://github.com/kul-optec/alpaqa
-        --branch=1.0.0a19 --single-branch --depth=1
+    - name: Download and export alpaqa
+      run: |
+        git clone https://github.com/kul-optec/alpaqa --branch=1.1.0a1 --single-branch --depth=1
+        conan export ./alpaqa
     # Build
     - name: Build Wheels
       uses: pypa/cibuildwheel@ce3fb7832089eb3e723a0a99cab7f3eaccf074fd
@@ -177,8 +198,8 @@ jobs:
         package-dir: .
         output-dir: dist
       env:
-        CIBW_BUILD: 'cp39-* cp310-* cp311-* cp312-*'
-        CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=10.15
+        CIBW_BUILD: 'cp310-* cp311-* cp312-*'
+        CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=11.0
     # Upload
     - name: Upload
       uses: actions/upload-artifact@v4
@@ -191,27 +212,27 @@ jobs:
     strategy:
       matrix:
         host: [macos]
-        python-version: ['3.9', '3.12']
-    runs-on: macos-13
+        python-version: ['3.10', '3.12']
+    runs-on: macos-15-intel
     steps:
     # Git clone
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         submodules: recursive
     # Install Python
     - name: Install Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '${{ matrix.python-version}}'
     # Download
     - name: Download alpaqa-lasso
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: alpaqa-lasso-python-${{ matrix.host }}
         path: dist
     # Install
     - name: Install
-      run: python${{ matrix.python-version}} -m pip install alpaqa-lasso==1.0.0a19 matplotlib -f ./dist
+      run: python${{ matrix.python-version}} -m pip install alpaqa-lasso==1.1.0a1 matplotlib -f ./dist
     # Run
     - name: Run
       run: python${{ matrix.python-version}} python/lasso.py
